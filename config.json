@@ -1,0 +1,141 @@
+{
+  "topics": {
+    "Markets & Economy": {
+      "feeds": [
+        {
+          "name": "Bloomberg",
+          "url": "https://news.google.com/rss/search?q=site:bloomberg.com/opinion+OR+site:bloomberg.com/news&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 3
+        },
+        {
+          "name": "Financial Times",
+          "url": "https://news.google.com/rss/search?q=site:ft.com&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 3
+        },
+        {
+          "name": "Wall Street Journal",
+          "url": "https://news.google.com/rss/search?q=site:wsj.com&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 3
+        },
+        {
+          "name": "The Economist",
+          "url": "https://news.google.com/rss/search?q=site:economist.com&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 3
+        },
+        {
+          "name": "CNBC",
+          "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664",
+          "max_items": 3
+        },
+        {
+          "name": "Reuters",
+          "url": "https://news.google.com/rss/search?q=site:reuters.com/markets&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 3
+        }
+      ]
+    },
+    "World News & Geopolitics": {
+      "feeds": [
+        {
+          "name": "Associated Press",
+          "url": "https://news.google.com/rss/search?q=site:apnews.com&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 3
+        },
+        {
+          "name": "BBC News",
+          "url": "https://news.google.com/rss/search?q=site:bbc.com/news+OR+site:bbc.co.uk/news&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 3
+        },
+        {
+          "name": "Al Jazeera",
+          "url": "https://news.google.com/rss/search?q=site:aljazeera.com&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 3
+        },
+        {
+          "name": "Reuters (World)",
+          "url": "https://news.google.com/rss/search?q=site:reuters.com/world&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 3
+        }
+      ]
+    },
+    "Ukraine War": {
+      "basis": {
+        "name": "ISW Russian Offensive Assessment",
+        "url": "https://news.google.com/rss/search?q=site:understandingwar.org+%22Russian+Offensive+Campaign+Assessment%22&hl=en-US&gl=US&ceid=US:en"
+      },
+      "feeds": [
+        {
+          "name": "Reuters (Ukraine)",
+          "url": "https://news.google.com/rss/search?q=site:reuters.com+Ukraine&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 3
+        },
+        {
+          "name": "Bloomberg (Ukraine)",
+          "url": "https://news.google.com/rss/search?q=site:bloomberg.com+Ukraine&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 3
+        }
+      ]
+    },
+    "Iran war": {
+      "basis": {
+        "name": "ISW Iran Update",
+        "url": "https://news.google.com/rss/search?q=site:understandingwar.org+%22Iran+Update%22&hl=en-US&gl=US&ceid=US:en"
+      },
+      "feeds": [
+        {
+          "name": "Reuters (Iran)",
+          "url": "https://news.google.com/rss/search?q=site:reuters.com+Iran&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 3
+        }
+      ]
+    },
+    "Artificial Intelligence": {
+      "feeds": [
+        {
+          "name": "Google News (AI)",
+          "url": "https://news.google.com/rss/search?q=%22artificial+intelligence%22&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 3
+        }
+      ]
+    },
+    "Data centers & Cloud": {
+      "feeds": [
+        {
+          "name": "Google News (Data Centers & Cloud)",
+          "url": "https://news.google.com/rss/search?q=%22Data+centers%22+OR+Cloud&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 3
+        },
+        {
+          "name": "Hacker News",
+          "url": "https://news.ycombinator.com/rss",
+          "max_items": 3
+        }
+      ]
+    },
+    "Cyber security": {
+      "feeds": [
+        {
+          "name": "Google News (Cyber security)",
+          "url": "https://news.google.com/rss/search?q=%22rubrik%22%20OR%20%22Cyber%20security%22%20OR%20%22Cyber%20attack%22&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 3
+        }
+      ]
+    }
+  },
+  "email_newsletters": [
+    {
+      "sender": "newsletter@wheresyoured.at",
+      "subject_matches": "",
+      "feed_name": "Ed Zitron",
+      "fallback_url": "https://www.wheresyoured.at/feed/"
+    },
+    {
+      "sender": "money-stuff@bloomberg.net",
+      "subject_matches": "Money Stuff",
+      "feed_name": "Matt Levine (Money Stuff)",
+      "fallback_url": "https://news.google.com/rss/search?q=site:bloomberg.com/opinion+%22Money+Stuff%22+author:%22Matt+Levine%22&hl=en-US&gl=US&ceid=US:en"
+    }
+  ],
+  "max_days_old": 7,
+  "max_items_per_feed": 13
+}

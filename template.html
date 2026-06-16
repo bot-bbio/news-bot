@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>news-bot // daily briefing</title>
+  
+  <style>
+    /* Newspaper Editorial Design System (Crimson & Charcoal) */
+    :root {
+      --bg-paper: #fdfbf7;
+      --text-main: #1c1c1c;
+      --text-muted: #5a5a5a;
+      --border-color: #e2dfd9;
+      --accent-crimson: #991b1b;
+      --accent-crimson-bg: rgba(153, 27, 27, 0.05);
+      --source-color: #8c3a3a;
+      
+      --font-display: Georgia, "Times New Roman", Times, serif;
+      --font-body: Georgia, "Times New Roman", Times, serif;
+      --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-paper: #141414;
+        --text-main: #e4e4e4;
+        --text-muted: #9a9a9a;
+        --border-color: #2a2a2a;
+        --accent-crimson: #f87171;
+        --accent-crimson-bg: rgba(248, 113, 113, 0.1);
+        --source-color: #c96f6f;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-paper);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    /* Header & Masthead */
+    header {
+      text-align: center;
+      border-bottom: 3px double var(--border-color);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .masthead-title {
+      font-family: var(--font-display);
+      font-size: 3rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      text-transform: lowercase;
+      color: var(--text-main);
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+
+    .masthead-subtitle {
+      font-family: var(--font-ui);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .meta-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-ui);
+      font-size: 0.8rem;
+      border-top: 1px solid var(--border-color);
+      padding-top: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .timestamp {
+      font-style: italic;
+    }
+
+    /* Controls & Search */
+    .controls {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+      align-items: center;
+      font-family: var(--font-ui);
+    }
+
+    .search-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
+    .search-input {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      padding: 0.6rem 1rem;
+      font-size: 0.9rem;
+      font-family: var(--font-ui);
+      color: var(--text-main);
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent-crimson);
+    }
+
+    .btn {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      padding: 0.6rem 1rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      border-color: var(--text-main);
+      color: var(--text-main);
+    }
+
+    .btn.active {
+      background: var(--text-main);
+      color: var(--bg-paper);
+      border-color: var(--text-main);
+    }
+
+    /* Topics / Columns */
+    .topic-section {
+      margin-bottom: 3rem;
+      page-break-inside: avoid;
+    }
+
+    .topic-header {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      font-weight: 700;
+      border-bottom: 1px solid var(--text-main);
+      padding-bottom: 0.25rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .topic-count {
+      font-family: var(--font-ui);
+      font-size: 0.85rem;
+      font-weight: 400;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* Basis Document layout */
+    .basis-doc {
+      background: var(--accent-crimson-bg);
+      border-left: 3px solid var(--accent-crimson);
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .basis-label {
+      font-family: var(--font-ui);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--accent-crimson);
+      letter-spacing: 0.1em;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .basis-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 0.5rem;
+    }
+
+    .basis-title a {
+      color: var(--text-main);
+      text-decoration: none;
+    }
+
+    .basis-title a:hover {
+      text-decoration: underline;
+    }
+
+    .basis-meta {
+      font-family: var(--font-ui);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .basis-desc {
+      font-size: 0.95rem;
+      color: var(--text-main);
+      line-height: 1.5;
+    }
+
+    /* Auxiliary stories list */
+    .auxiliary-header {
+      font-family: var(--font-ui);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      border-bottom: 1px dotted var(--border-color);
+      padding-bottom: 0.25rem;
+    }
+
+    .aux-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .aux-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .aux-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .aux-item.read {
+      opacity: 0.35;
+    }
+
+    .aux-item.read:hover {
+      opacity: 0.75;
+    }
+
+    .aux-title-row {
+      font-size: 1.1rem;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .aux-title-row a {
+      color: var(--text-main);
+      text-decoration: none;
+    }
+
+    .aux-title-row a:hover {
+      text-decoration: underline;
+      color: var(--accent-crimson);
+    }
+
+    .aux-meta-row {
+      font-family: var(--font-ui);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .meta-source {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.95rem;
+      letter-spacing: 0.02em;
+      color: var(--source-color);
+    }
+
+    .meta-separator {
+      color: var(--border-color);
+    }
+
+    .aux-snippet {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Actions */
+    .action-link {
+      background: transparent;
+      border: none;
+      font-family: var(--font-ui);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .action-link:hover {
+      color: var(--text-main);
+      text-decoration: underline;
+    }
+
+    .empty-state {
+      font-size: 0.95rem;
+      font-style: italic;
+      color: var(--text-muted);
+      padding: 0.5rem 0;
+    }
+
+    /* Collapsible Category Details Styling */
+    details.topic-details {
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.5rem;
+    }
+    
+    summary.topic-summary {
+      list-style: none; /* Hide standard firefox arrow */
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      outline: none;
+      user-select: none;
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      font-weight: 700;
+      padding: 0.5rem 0;
+    }
+    
+    summary.topic-summary::-webkit-details-marker {
+      display: none; /* Hide Chrome default arrow */
+    }
+    
+    .topic-title-wrapper::before {
+      content: "▶";
+      font-size: 0.8rem;
+      color: var(--accent-crimson);
+      margin-right: 0.6rem;
+      display: inline-block;
+      transition: transform 0.2s ease;
+      vertical-align: middle;
+    }
+    
+    details.topic-details[open] .topic-title-wrapper::before {
+      content: "▼";
+    }
+    
+    .topic-title {
+      vertical-align: middle;
+    }
+
+    .paywall-label {
+      color: var(--accent-crimson);
+      font-weight: 700;
+    }
+    
+    /* Reorder Controls */
+    .reorder-controls {
+      display: inline-flex;
+      gap: 0.2rem;
+      margin-left: 0.6rem;
+      align-items: center;
+    }
+    
+    .reorder-btn {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 0.65rem;
+      width: 18px;
+      height: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      line-height: 1;
+      transition: all 0.1s ease;
+    }
+    
+    .reorder-btn:hover {
+      color: var(--text-main);
+      border-color: var(--text-main);
+    }
+
+    /* Settings Drawer Panel */
+    .settings-drawer {
+      border: 1px solid var(--border-color);
+      margin-bottom: 2rem;
+      font-family: var(--font-ui);
+      background: rgba(0, 0, 0, 0.01);
+    }
+    
+    .settings-summary {
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      user-select: none;
+      outline: none;
+    }
+    
+    .settings-summary:hover {
+      background: rgba(0, 0, 0, 0.02);
+    }
+    
+    .settings-content {
+      padding: 1.25rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    
+    .settings-section-title {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      color: var(--text-main);
+    }
+    
+    .settings-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+    
+    .topic-item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--border-color);
+      margin-bottom: 0.4rem;
+      background: rgba(0, 0, 0, 0.01);
+      font-size: 0.85rem;
+    }
+    
+    .topic-item-title {
+      font-weight: 600;
+    }
+    
+    .topic-item-details {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+    
+    .input-group {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      flex-wrap: wrap;
+    }
+    
+    .input-field {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      padding: 0.5rem 0.75rem;
+      font-size: 0.85rem;
+      font-family: var(--font-ui);
+      color: var(--text-main);
+      outline: none;
+      flex: 1;
+      min-width: 200px;
+    }
+    
+    .input-field:focus {
+      border-color: var(--accent-crimson);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="masthead-title">news-bot</div>
+      <div class="masthead-subtitle">your clean daily briefing digest</div>
+      <div class="meta-line">
+        <span class="timestamp" id="generation-time">Compiled: {GENERATED_TIME}</span>
+        <span>Strict 7-Day Recency Filter</span>
+      </div>
+    </header>
+
+    <div class="controls">
+      <div class="search-wrapper">
+        <input type="text" class="search-input" id="search-box" placeholder="Filter articles by keyword, topic, or source..." oninput="filterDigest()">
+      </div>
+      <button class="btn" id="btn-toggle-read" onclick="toggleHideRead()">Hide Read</button>
+    </div>
+
+    <!-- Briefing Settings Drawer -->
+    <details class="settings-drawer">
+      <summary class="settings-summary">⚙️ Briefing Settings</summary>
+      <div class="settings-content">
+        <!-- 1. Global Settings Section -->
+        <div>
+          <div class="settings-section-title">Global Settings</div>
+          <div class="settings-desc">Configure the recency filter cutoff and default feed gathering cap.</div>
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+            <div style="flex: 1; min-width: 180px;">
+              <label for="global-max-days" style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem; font-family: var(--font-ui);">Recency Cutoff (days)</label>
+              <input type="number" class="input-field" id="global-max-days" min="1" max="365" style="width: 100%; padding: 0.4rem 0.6rem;">
+            </div>
+            <div style="flex: 1; min-width: 180px;">
+              <label for="global-max-items" style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem; font-family: var(--font-ui);">Global Default Cap (stories per feed)</label>
+              <input type="number" class="input-field" id="global-max-items" min="1" max="100" style="width: 100%; padding: 0.4rem 0.6rem;">
+            </div>
+          </div>
+        </div>
+        
+        <hr style="border: none; border-top: 1px dotted var(--border-color); margin: 0.5rem 0;">
+        
+        <!-- 2. Manage Custom Topics & RSS Feeds Section -->
+        <div>
+          <div class="settings-section-title">Manage Custom Topics & RSS Feeds</div>
+          <div class="settings-desc">Add custom keyword categories, configure RSS sources, and define individual source limits.</div>
+          
+          <details id="topics-editor-collapsible" style="margin-bottom: 1rem; border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,0,0,0.005);">
+            <summary style="cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); outline: none; font-family: var(--font-ui); user-select: none;">View / Edit Existing Topics & Feeds</summary>
+            <div id="topics-list-editor" style="margin-top: 0.75rem; max-height: 450px; overflow-y: auto; padding-right: 0.5rem;">
+              <!-- Loaded dynamically -->
+            </div>
+          </details>
+
+          <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; font-family: var(--font-ui);">Add New Custom Topic</div>
+          <div class="input-group" style="margin-top: 0;">
+            <input type="text" class="input-field" id="new-topic-name" placeholder="Topic Name (e.g. Cybersecurity)">
+            <input type="text" class="input-field" id="new-topic-query" placeholder="Search Keywords (e.g. zero day, ransomware)">
+            <button class="btn btn-primary" onclick="addCustomTopic()">Add Topic</button>
+          </div>
+        </div>
+        
+        <hr style="border: none; border-top: 1px dotted var(--border-color); margin: 0.5rem 0;">
+        
+        <!-- 3. Manage Email Newsletters Section -->
+        <div>
+          <div class="settings-section-title">Manage Email Newsletters</div>
+          <div class="settings-desc">Configure email sender scanning parameters and fallback RSS feeds for newsletters.</div>
+          
+          <details id="newsletters-editor-collapsible" style="margin-bottom: 1rem; border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,0,0,0.005);">
+            <summary style="cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); outline: none; font-family: var(--font-ui); user-select: none;">View / Edit Existing Newsletters</summary>
+            <div id="newsletters-list-editor" style="margin-top: 0.75rem; max-height: 300px; overflow-y: auto; padding-right: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+              <!-- Loaded dynamically -->
+            </div>
+          </details>
+
+          <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; font-family: var(--font-ui);">Register New Newsletter</div>
+          <div class="input-group" style="margin-top: 0; display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; width: 100%;">
+              <input type="text" class="input-field" id="new-nl-feed-name" placeholder="Feed Name (e.g. Matt Levine)" style="flex: 1; min-width: 150px;">
+              <input type="text" class="input-field" id="new-nl-sender" placeholder="Sender Email (e.g. money-stuff@bloomberg.net)" style="flex: 1; min-width: 150px;">
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; width: 100%;">
+              <input type="text" class="input-field" id="new-nl-subject" placeholder="Subject Match Filter (optional, e.g. Money Stuff)" style="flex: 1; min-width: 150px;">
+              <input type="text" class="input-field" id="new-nl-fallback" placeholder="Fallback RSS URL (e.g. Substack Feed)" style="flex: 1; min-width: 150px;">
+            </div>
+            <button class="btn btn-primary" onclick="addCustomNewsletter()" style="align-self: flex-start; margin-top: 0.25rem;">Add Newsletter</button>
+          </div>
+        </div>
+        
+        <hr style="border: none; border-top: 1px dotted var(--border-color); margin: 0.5rem 0;">
+        
+        <!-- 4. Query Guidelines Info -->
+        <div>
+          <div class="settings-section-title">Query Guidelines for Clean Searches</div>
+          <div class="settings-desc" style="line-height: 1.5;">
+            <p style="margin-bottom:0.4rem; font-weight:600;">Use these search operator queries to curate noise-free feeds:</p>
+            <ul style="padding-left:1.2rem; margin-bottom:0.4rem; display:flex; flex-direction:column; gap:0.25rem;">
+              <li><strong>Exact Phrases:</strong> Wrap words in quotes, e.g. <code>"Data centers"</code>.</li>
+              <li><strong>Exclude Subjects:</strong> Use a minus sign, e.g. <code>Apple -fruit</code>.</li>
+              <li><strong>Boolean Search (OR):</strong> Match multiple terms, e.g. <code>"Ukraine war" OR "Ukraine conflict"</code>.</li>
+              <li><strong>Scope to Domains:</strong> Limit results to specific sites, e.g. <code>site:reuters.com Ukraine</code>.</li>
+              <li><strong>Complex Queries:</strong> Mix parameters, e.g. <code>"Artificial Intelligence" site:ft.com</code>.</li>
+            </ul>
+            <p style="font-size:0.75rem; margin-top:0.5rem; color:var(--text-muted);">Keep search parameters concise (2-4 terms work best) for the most accurate aggregations.</p>
+          </div>
+        </div>
+        
+        <hr style="border: none; border-top: 1px dotted var(--border-color); margin: 0.5rem 0;">
+        
+        <!-- 5. Save Configuration Section -->
+        <div>
+          <div class="settings-section-title">Save Briefing Configuration</div>
+          <div class="settings-desc">Save settings directly to <code>config.json</code> and trigger news compiler compilation.</div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-primary" onclick="saveConfigToFile()">Save</button>
+            <button class="btn" onclick="triggerRefresh()">Refresh</button>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <main id="digest-main">
+      <!-- Dynamic news topics injected here -->
+      {TOPICS_HTML}
+    </main>
+  </div>
+
+  <script>
+    const CURRENT_CONFIG = {CONFIG_JSON};
+    let hideRead = false;
+    let readArticles = JSON.parse(localStorage.getItem('news_bot_read_articles') || '[]');
+    let configObj = CURRENT_CONFIG;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      applyTopicOrder();
+      applyLocalState();
+      updateCounts();
+      initSettings();
+    });
+
+    function applyLocalState() {
+      document.querySelectorAll('.aux-item, .basis-doc').forEach(item => {
+        const id = item.dataset.articleId;
+        if (readArticles.includes(id)) {
+          item.classList.add('read');
+          if (hideRead) {
+            item.style.display = 'none';
+          }
+        }
+      });
+    }
+
+    function toggleHideRead() {
+      hideRead = !hideRead;
+      const btn = document.getElementById('btn-toggle-read');
+      btn.innerText = hideRead ? "Show Read" : "Hide Read";
+      btn.classList.toggle('active', hideRead);
+
+      document.querySelectorAll('.aux-item, .basis-doc').forEach(item => {
+        if (item.classList.contains('read')) {
+          item.style.display = hideRead ? 'none' : 'flex';
+          if (item.classList.contains('basis-doc') && !hideRead) {
+            item.style.display = 'block';
+          }
+        }
+      });
+      updateCounts();
+    }
+
+    function toggleRead(articleId) {
+      const card = document.querySelector(`[data-article-id="${articleId}"]`);
+      if (!card) return;
+
+      const isRead = card.classList.toggle('read');
+      
+      if (isRead) {
+        if (!readArticles.includes(articleId)) {
+          readArticles.push(articleId);
+        }
+        if (hideRead) {
+          card.style.display = 'none';
+        }
+      } else {
+        readArticles = readArticles.filter(id => id !== articleId);
+      }
+      
+      localStorage.setItem('news_bot_read_articles', JSON.stringify(readArticles));
+      updateCounts();
+    }
+
+    function updateCounts() {
+      document.querySelectorAll('.topic-section').forEach(section => {
+        let count = 0;
+        section.querySelectorAll('.aux-item, .basis-doc').forEach(item => {
+          if (item.style.display !== 'none') {
+            count++;
+          }
+        });
+        const countBadge = section.querySelector('.topic-count');
+        if (countBadge) {
+          countBadge.innerText = `${count} stories`;
+        }
+      });
+    }
+
+    function filterDigest() {
+      const query = document.getElementById('search-box').value.toLowerCase().trim();
+      
+      document.querySelectorAll('.topic-section').forEach(section => {
+        let sectionHasMatch = false;
+        
+        section.querySelectorAll('.aux-item, .basis-doc').forEach(item => {
+          const title = item.querySelector('a').innerText.toLowerCase();
+          const source = item.querySelector('.meta-source') ? item.querySelector('.meta-source').innerText.toLowerCase() : '';
+          const desc = item.querySelector('.basis-desc, .aux-snippet') ? item.querySelector('.basis-desc, .aux-snippet').innerText.toLowerCase() : '';
+          
+          const isMatch = title.includes(query) || source.includes(query) || desc.includes(query);
+          
+          if (isMatch) {
+            if (item.classList.contains('read') && hideRead) {
+              item.style.display = 'none';
+            } else {
+              item.style.display = item.classList.contains('basis-doc') ? 'block' : 'flex';
+              sectionHasMatch = true;
+            }
+          } else {
+            item.style.display = 'none';
+          }
+        });
+        
+        if (query === "") {
+          section.style.display = 'block';
+        } else {
+          section.style.display = sectionHasMatch ? 'block' : 'none';
+        }
+      });
+      
+      updateCounts();
+    }
+
+    // Editable Hierarchy (Category Rearranging)
+    function moveTopic(event, topicName, direction) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      
+      const digestMain = document.getElementById('digest-main');
+      const sections = Array.from(digestMain.querySelectorAll('.topic-section'));
+      const currentIndex = sections.findIndex(s => s.dataset.topicName === topicName);
+      
+      if (currentIndex === -1) return;
+      
+      if (direction === 'up' && currentIndex > 0) {
+        digestMain.insertBefore(sections[currentIndex], sections[currentIndex - 1]);
+      } else if (direction === 'down' && currentIndex < sections.length - 1) {
+        digestMain.insertBefore(sections[currentIndex + 1], sections[currentIndex]);
+      }
+      
+      // Save customized order to localStorage
+      const newOrder = Array.from(digestMain.querySelectorAll('.topic-section')).map(s => s.dataset.topicName);
+      localStorage.setItem('news_bot_topic_order', JSON.stringify(newOrder));
+    }
+    
+    function applyTopicOrder() {
+      const digestMain = document.getElementById('digest-main');
+      const savedOrder = JSON.parse(localStorage.getItem('news_bot_topic_order') || '[]');
+      if (savedOrder.length === 0) return;
+      
+      const sections = Array.from(digestMain.querySelectorAll('.topic-section'));
+      
+      sections.sort((a, b) => {
+        const indexA = savedOrder.indexOf(a.dataset.topicName);
+        const indexB = savedOrder.indexOf(b.dataset.topicName);
+        
+        const valA = indexA === -1 ? 999 : indexA;
+        const valB = indexB === -1 ? 999 : indexB;
+        return valA - valB;
+      });
+      
+      sections.forEach(s => digestMain.appendChild(s));
+    }
+
+    // Settings Panel Controls
+    function initSettings() {
+      // Populate global settings inputs from active configObj
+      document.getElementById('global-max-days').value = configObj.max_days_old || 7;
+      document.getElementById('global-max-items').value = configObj.max_items_per_feed || 10;
+      
+      renderTopicsEditor();
+      renderNewslettersEditor();
+    }
+
+    function getSortedTopicKeys() {
+      const topics = configObj.topics || {};
+      const keys = Object.keys(topics);
+      const savedOrder = JSON.parse(localStorage.getItem('news_bot_topic_order') || '[]');
+      if (savedOrder.length === 0) return keys;
+      
+      keys.sort((a, b) => {
+        const indexA = savedOrder.indexOf(a);
+        const indexB = savedOrder.indexOf(b);
+        const valA = indexA === -1 ? 999 : indexA;
+        const valB = indexB === -1 ? 999 : indexB;
+        return valA - valB;
+      });
+      return keys;
+    }
+
+    function renderTopicsEditor() {
+      const container = document.getElementById('topics-list-editor');
+      container.innerHTML = '';
+      
+      const sortedKeys = getSortedTopicKeys();
+      if (sortedKeys.length === 0) {
+        container.innerHTML = '<div style="font-size:0.8rem; color:var(--text-muted); font-style:italic;">No topics configured.</div>';
+        return;
+      }
+      
+      sortedKeys.forEach(topicName => {
+        const topicConf = configObj.topics[topicName];
+        if (!topicConf) return;
+        
+        const card = document.createElement('div');
+        card.style.border = '1px solid var(--border-color)';
+        card.style.padding = '0.85rem';
+        card.style.marginBottom = '0.75rem';
+        card.style.background = 'rgba(0, 0, 0, 0.005)';
+        
+        // Topic Header
+        const header = document.createElement('div');
+        header.style.display = 'flex';
+        header.style.justify = 'space-between';
+        header.style.alignItems = 'center';
+        header.style.marginBottom = '0.6rem';
+        header.style.borderBottom = '1px solid var(--border-color)';
+        header.style.paddingBottom = '0.3rem';
+        header.innerHTML = `
+          <div style="font-weight:700; font-size:0.95rem; font-family:var(--font-display);">${escapeHtml(topicName)}</div>
+          <button class="btn" onclick="deleteTopic(event, '${escapeHtml(topicName.replace(/'/g, "\\'"))}')" 
+                  style="border-color:var(--accent-crimson); color:var(--accent-crimson); padding:0.2rem 0.4rem; font-size:0.75rem;">Delete Topic</button>
+        `;
+        card.appendChild(header);
+        
+        // Topic Feeds List
+        const feedsList = document.createElement('div');
+        feedsList.style.display = 'flex';
+        feedsList.style.flexDirection = 'column';
+        feedsList.style.gap = '0.35rem';
+        feedsList.style.marginBottom = '0.6rem';
+        
+        const feeds = topicConf.feeds || [];
+        if (feeds.length === 0) {
+          feedsList.innerHTML = `<div style="font-size:0.75rem; color:var(--text-muted); font-style:italic;">No auxiliary feeds.</div>`;
+        } else {
+          feeds.forEach((feed, feedIdx) => {
+            const feedRow = document.createElement('div');
+            feedRow.style.display = 'flex';
+            feedRow.style.justify = 'space-between';
+            feedRow.style.alignItems = 'center';
+            feedRow.style.padding = '0.35rem 0.5rem';
+            feedRow.style.border = '1px dashed var(--border-color)';
+            feedRow.style.background = 'var(--bg-paper)';
+            feedRow.style.fontSize = '0.8rem';
+            
+            const maxVal = feed.max_items !== undefined ? feed.max_items : 3;
+            
+            feedRow.innerHTML = `
+              <div style="display:flex; flex-direction:column; gap:0.1rem; flex:1; min-width:0; margin-right:0.5rem;">
+                <div style="font-weight:600; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${escapeHtml(feed.name)}">${escapeHtml(feed.name)}</div>
+                <div style="font-size:0.7rem; color:var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${escapeHtml(feed.url)}">${escapeHtml(feed.url)}</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:0.4rem; flex-shrink:0;">
+                <label style="font-size:0.7rem; color:var(--text-muted); font-family:var(--font-ui);">Max:</label>
+                <input type="number" min="1" max="50" value="${maxVal}" 
+                       onchange="updateFeedLimit(event, '${escapeHtml(topicName.replace(/'/g, "\\'"))}', ${feedIdx}, this.value)" 
+                       style="width:42px; padding:0.15rem 0.25rem; font-size:0.75rem; background:transparent; border:1px solid var(--border-color); color:var(--text-main); outline:none; text-align:center;">
+                <button class="btn" onclick="deleteFeed(event, '${escapeHtml(topicName.replace(/'/g, "\\'"))}', ${feedIdx})" 
+                        style="padding:0.15rem 0.35rem; font-size:0.7rem; border-color:var(--border-color);">Delete</button>
+              </div>
+            `;
+            feedsList.appendChild(feedRow);
+          });
+        }
+        card.appendChild(feedsList);
+        
+        // Add Feed Input Row
+        const addFeedRow = document.createElement('div');
+        addFeedRow.style.display = 'flex';
+        addFeedRow.style.gap = '0.3rem';
+        addFeedRow.style.marginTop = '0.4rem';
+        
+        const feedNameId = `new-feed-name-${topicName.replace(/\s+/g, '-')}`;
+        const feedUrlId = `new-feed-url-${topicName.replace(/\s+/g, '-')}`;
+        
+        addFeedRow.innerHTML = `
+          <input type="text" class="input-field" id="${feedNameId}" placeholder="Source Name (e.g. AP News)" style="font-size:0.75rem; padding:0.3rem 0.4rem; min-width:110px; flex:1;">
+          <input type="text" class="input-field" id="${feedUrlId}" placeholder="RSS Feed URL" style="font-size:0.75rem; padding:0.3rem 0.4rem; min-width:130px; flex:2;">
+          <button class="btn" onclick="addFeedToTopic(event, '${escapeHtml(topicName.replace(/'/g, "\\'"))}', '${feedNameId}', '${feedUrlId}')" 
+                  style="padding:0.3rem 0.5rem; font-size:0.75rem; flex-shrink:0;">Add Feed</button>
+        `;
+        card.appendChild(addFeedRow);
+        
+        container.appendChild(card);
+      });
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function deleteTopic(event, topicName) {
+      if (event) event.preventDefault();
+      if (configObj.topics && configObj.topics[topicName]) {
+        if (confirm(`Are you sure you want to delete the entire topic "${topicName}"?`)) {
+          delete configObj.topics[topicName];
+          renderTopicsEditor();
+        }
+      }
+    }
+
+    function addCustomTopic() {
+      const nameInput = document.getElementById('new-topic-name');
+      const queryInput = document.getElementById('new-topic-query');
+      const name = nameInput.value.trim();
+      const query = queryInput.value.trim();
+      
+      if (!name || !query) {
+        alert('Please enter both a topic name and keywords.');
+        return;
+      }
+      
+      if (!configObj.topics) {
+        configObj.topics = {};
+      }
+      
+      if (configObj.topics[name]) {
+        alert('A topic with this name already exists.');
+        return;
+      }
+      
+      configObj.topics[name] = {
+        "feeds": [
+          {
+            "name": `Google News (${name})`,
+            "url": `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`,
+            "max_items": 3
+          }
+        ]
+      };
+      
+      nameInput.value = '';
+      queryInput.value = '';
+      
+      // Auto-open topics collapsible details to show the newly added topic
+      document.getElementById('topics-editor-collapsible').open = true;
+      renderTopicsEditor();
+    }
+
+    function updateFeedLimit(event, topicName, feedIdx, val) {
+      const parsedVal = parseInt(val, 10);
+      if (isNaN(parsedVal) || parsedVal < 1) return;
+      const topic = configObj.topics[topicName];
+      if (topic && topic.feeds && topic.feeds[feedIdx]) {
+        topic.feeds[feedIdx].max_items = parsedVal;
+      }
+    }
+
+    function deleteFeed(event, topicName, feedIdx) {
+      if (event) event.preventDefault();
+      const topic = configObj.topics[topicName];
+      if (topic && topic.feeds && topic.feeds[feedIdx]) {
+        topic.feeds.splice(feedIdx, 1);
+        renderTopicsEditor();
+      }
+    }
+
+    function addFeedToTopic(event, topicName, nameId, urlId) {
+      if (event) event.preventDefault();
+      const nameInput = document.getElementById(nameId);
+      const urlInput = document.getElementById(urlId);
+      const name = nameInput.value.trim();
+      const url = urlInput.value.trim();
+      
+      if (!name || !url) {
+        alert('Please fill in both the feed name and RSS URL.');
+        return;
+      }
+      
+      const topic = configObj.topics[topicName];
+      if (topic) {
+        if (!topic.feeds) {
+          topic.feeds = [];
+        }
+        topic.feeds.push({
+          name: name,
+          url: url,
+          max_items: 3
+        });
+        nameInput.value = '';
+        urlInput.value = '';
+        renderTopicsEditor();
+      }
+    }
+
+    function renderNewslettersEditor() {
+      const container = document.getElementById('newsletters-list-editor');
+      container.innerHTML = '';
+      
+      const newsletters = configObj.email_newsletters || [];
+      if (newsletters.length === 0) {
+        container.innerHTML = '<div style="font-size:0.75rem; color:var(--text-muted); font-style:italic; padding:0.5rem 0;">No email newsletters registered.</div>';
+        return;
+      }
+      
+      newsletters.forEach((nl, idx) => {
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.justify = 'space-between';
+        row.style.alignItems = 'center';
+        row.style.padding = '0.5rem';
+        row.style.border = '1px solid var(--border-color)';
+        row.style.background = 'var(--bg-paper)';
+        row.style.fontSize = '0.8rem';
+        
+        let detailsHtml = `<div><strong>${escapeHtml(nl.feed_name)}</strong></div>`;
+        detailsHtml += `<div style="font-size:0.7rem; color:var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width:320px;">Sender: ${escapeHtml(nl.sender)}</div>`;
+        if (nl.subject_matches) {
+          detailsHtml += `<div style="font-size:0.7rem; color:var(--text-muted);">Subject Filter: "${escapeHtml(nl.subject_matches)}"</div>`;
+        }
+        if (nl.fallback_url) {
+          detailsHtml += `<div style="font-size:0.7rem; color:var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width:320px;" title="${escapeHtml(nl.fallback_url)}">Fallback: ${escapeHtml(nl.fallback_url)}</div>`;
+        }
+        
+        row.innerHTML = `
+          <div style="flex:1; min-width:0; margin-right:0.5rem;">
+            ${detailsHtml}
+          </div>
+          <button class="btn" onclick="deleteNewsletter(event, ${idx})" 
+                  style="border-color:var(--accent-crimson); color:var(--accent-crimson); padding:0.2rem 0.4rem; font-size:0.75rem; flex-shrink:0;">Delete</button>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function deleteNewsletter(event, idx) {
+      if (event) event.preventDefault();
+      if (configObj.email_newsletters && configObj.email_newsletters[idx]) {
+        configObj.email_newsletters.splice(idx, 1);
+        renderNewslettersEditor();
+      }
+    }
+
+    function addCustomNewsletter() {
+      const nameInput = document.getElementById('new-nl-feed-name');
+      const senderInput = document.getElementById('new-nl-sender');
+      const subjectInput = document.getElementById('new-nl-subject');
+      const fallbackInput = document.getElementById('new-nl-fallback');
+      
+      const name = nameInput.value.trim();
+      const sender = senderInput.value.trim();
+      const subject = subjectInput.value.trim();
+      const fallback = fallbackInput.value.trim();
+      
+      if (!name || !sender) {
+        alert('Please enter both the newsletter name and sender email address.');
+        return;
+      }
+      
+      if (!configObj.email_newsletters) {
+        configObj.email_newsletters = [];
+      }
+      
+      configObj.email_newsletters.push({
+        sender: sender,
+        subject_matches: subject,
+        feed_name: name,
+        fallback_url: fallback
+      });
+      
+      nameInput.value = '';
+      senderInput.value = '';
+      subjectInput.value = '';
+      fallbackInput.value = '';
+      
+      // Auto-open newsletter collapsible details to show the newly added item
+      document.getElementById('newsletters-editor-collapsible').open = true;
+      renderNewslettersEditor();
+    }
+
+    function resetConfigTextarea() {
+      configObj = JSON.parse(JSON.stringify(CURRENT_CONFIG));
+      initSettings();
+    }
+
+    async function saveConfigToFile() {
+      // Gather and merge global settings inputs right before save
+      const maxDaysVal = parseInt(document.getElementById('global-max-days').value, 10);
+      const maxItemsVal = parseInt(document.getElementById('global-max-items').value, 10);
+      
+      if (!isNaN(maxDaysVal) && maxDaysVal >= 1) {
+        configObj.max_days_old = maxDaysVal;
+      }
+      if (!isNaN(maxItemsVal) && maxItemsVal >= 1) {
+        configObj.max_items_per_feed = maxItemsVal;
+      }
+      
+      const configStr = JSON.stringify(configObj, null, 2);
+      
+      const isHttp = window.location.protocol.startsWith('http');
+      const serverUrl = isHttp ? '/save' : 'http://127.0.0.1:8999/save';
+      
+      try {
+        const response = await fetch(serverUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: configStr
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          if (result.status === 'success') {
+            alert('Success: config.json updated and news-bot recompiled! Reloading page...');
+            window.location.reload();
+            return;
+          }
+        }
+      } catch (err) {
+        console.log('Local server save not available or failed. Falling back to local browser download.', err);
+      }
+      
+      try {
+        const options = {
+          suggestedName: 'config.json',
+          types: [{
+            description: 'JSON Files',
+            accept: {
+              'application/json': ['.json'],
+            },
+          }],
+        };
+        const handle = await window.showSaveFilePicker(options);
+        const writable = await handle.createWritable();
+        await writable.write(configStr);
+        await writable.close();
+        alert('Success: config.json updated successfully! Please double-click refresh.bat to re-compile your news feed.');
+      } catch (err) {
+        console.warn('File System Access API not used or supported. Falling back to browser download.', err);
+        const blob = new Blob([configStr], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'config.json';
+        a.click();
+        alert('config.json download started. Save/overwrite this file in your news-bot directory, then run refresh.bat.');
+      }
+    }
+
+    async function triggerRefresh() {
+      const isHttp = window.location.protocol.startsWith('http');
+      const serverUrl = isHttp ? '/refresh' : 'http://127.0.0.1:8999/refresh';
+      
+      try {
+        const response = await fetch(serverUrl, {
+          method: 'POST'
+        });
+        if (response.ok) {
+          const result = await response.json();
+          if (result.status === 'success') {
+            window.location.reload();
+            return;
+          }
+        }
+      } catch (err) {
+        console.log('Local server refresh not available. Falling back to standard browser reload.', err);
+      }
+      
+      window.location.reload();
+    }
+  </script>
+</body>
+</html>

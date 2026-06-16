@@ -1,0 +1,26 @@
+# Generated news feed HTML output
+digest.html
+
+# Local environment credentials (gitignored for security)
+.env
+
+# Local agent workflow files
+.workflow/
+conductor/
+STRATEGY.md
+WORKFLOW.md
+bootstrap.ps1
+mach.exe
+
+# Logs
+*.log
+
+# Python caching
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OS files
+.DS_Store
+Thumbs.db
