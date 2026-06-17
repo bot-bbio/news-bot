@@ -825,6 +825,7 @@
         card.style.background = 'rgba(0, 0, 0, 0.005)';
         
         // Topic Header
+        const isEnabled = topicConf.enabled !== false;
         const header = document.createElement('div');
         header.style.display = 'flex';
         header.style.justify = 'space-between';
@@ -833,11 +834,19 @@
         header.style.borderBottom = '1px solid var(--border-color)';
         header.style.paddingBottom = '0.3rem';
         header.innerHTML = `
-          <div style="font-weight:700; font-size:0.95rem; font-family:var(--font-display);">${escapeHtml(topicName)}</div>
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <input type="checkbox" id="enable-topic-${topicName.replace(/\s+/g, '-')}" ${isEnabled ? 'checked' : ''} 
+                   onchange="toggleTopicEnabled('${escapeHtml(topicName.replace(/'/g, "\\'"))}', this.checked)"
+                   style="cursor:pointer; width:15px; height:15px; vertical-align:middle;">
+            <div style="font-weight:700; font-size:0.95rem; font-family:var(--font-display); vertical-align:middle; ${isEnabled ? '' : 'text-decoration:line-through; opacity:0.5;'}">${escapeHtml(topicName)}</div>
+          </div>
           <button class="btn" onclick="deleteTopic(event, '${escapeHtml(topicName.replace(/'/g, "\\'"))}')" 
                   style="border-color:var(--accent-crimson); color:var(--accent-crimson); padding:0.2rem 0.4rem; font-size:0.75rem;">Delete Topic</button>
         `;
         card.appendChild(header);
+        if (!isEnabled) {
+          card.style.opacity = '0.75';
+        }
         
         // Topic Feeds List
         const feedsList = document.createElement('div');
@@ -912,6 +921,14 @@
         .replace(/'/g, "&#039;");
     }
 
+    function toggleTopicEnabled(topicName, isChecked) {
+      const topic = configObj.topics[topicName];
+      if (topic) {
+        topic.enabled = isChecked;
+        renderTopicsEditor();
+      }
+    }
+
     function deleteTopic(event, topicName) {
       if (event) event.preventDefault();
       if (configObj.topics && configObj.topics[topicName]) {
@@ -943,6 +960,7 @@
       }
       
       configObj.topics[name] = {
+        "enabled": true,
         "feeds": [
           {
             "name": `Google News (${name})`,

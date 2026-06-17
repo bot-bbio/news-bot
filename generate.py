@@ -481,7 +481,7 @@ def render_basis_html(basis):
     paywall_tag = ' <span class="paywall-label">• 🔒 Paywall</span>' if basis.get("paywall") else ''
     return f"""
       <div class="basis-doc" data-article-id="{basis["id"]}">
-        <span class="basis-label">Basis / Foundation Analysis</span>
+        <span class="basis-label">Mandated Priority Basis — {basis["source"]}</span>
         <div class="basis-meta">
           <span class="meta-source">{basis["source"]}</span>
           <span class="meta-separator">•</span>
@@ -606,6 +606,7 @@ def compile_digest(silent=False):
         future_to_topic = {
             executor.submit(fetch_and_process_topic, name, conf, max_items, max_days_old): name 
             for name, conf in topics.items()
+            if conf.get("enabled", True)
         }
         
         # Compile each topic section's HTML as it finishes
