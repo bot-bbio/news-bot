@@ -13,6 +13,7 @@ import html
 import imaplib
 import email
 from email.header import decode_header
+from email.utils import parsedate_to_datetime
 import http.server
 import socketserver
 import urllib.parse
@@ -135,29 +136,54 @@ def clean_title(title, source_name):
     return title.strip()
 
 def parse_rfc822_date(date_str):
-    """Parse dates from RSS feeds and emails."""
+    """Parse dates from RSS feeds and emails into timezone-aware datetimes.
+
+    Tries the standard-library RFC 822 parser first (handles the vast majority of
+    real-world RSS/email date headers), then ISO 8601, then a few manual fallbacks.
+    Returns None only when no strategy can extract a date. Naive datetimes are
+    treated as UTC so downstream recency comparisons never raise."""
     if not date_str:
         return None
-    
-    # Clean day of week
-    clean_date = re.sub(r'^[A-Za-z]{3},\s*', '', date_str.strip())
-    
+
+    date_str = date_str.strip()
+
+    # 1. Robust RFC 822 parser (e.g. "Mon, 16 Jun 2026 14:30:00 +0000" / "GMT")
+    try:
+        dt = parsedate_to_datetime(date_str)
+        if dt is not None:
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
+    except (TypeError, ValueError, IndexError, OverflowError):
+        pass
+
+    # 2. ISO 8601 (e.g. "2026-06-16T14:30:00Z" / "...+00:00" / with fractional seconds)
+    iso_candidate = date_str.replace("Z", "+00:00")
+    try:
+        dt = datetime.fromisoformat(iso_candidate)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except ValueError:
+        pass
+
+    # 3. Manual fallbacks for non-standard feeds
+    clean_date = re.sub(r'^[A-Za-z]{3},\s*', '', date_str)
     formats = [
         "%d %b %Y %H:%M:%S %Z",
         "%d %b %Y %H:%M:%S %z",
         "%d %b %Y %H:%M:%S",
-        "%Y-%m-%dT%H:%M:%S%z",
-        "%Y-%m-%dT%H:%M:%SZ",
-        "%d %b %Y %H:%M %Z",
-        "%d %b %Y %H:%M %z"
+        "%d %b %Y %H:%M %z",
+        "%d %b %Y %H:%M",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d",
     ]
-    
     for fmt in formats:
         try:
             if fmt.endswith("%Z") and (clean_date.endswith("GMT") or clean_date.endswith("UTC")):
                 clean_date_tz = clean_date.replace("GMT", "+0000").replace("UTC", "+0000")
                 return datetime.strptime(clean_date_tz, fmt.replace("%Z", "%z")).replace(tzinfo=timezone.utc)
-            
+
             dt = datetime.strptime(clean_date, fmt)
             if dt.tzinfo is None:
                 dt = dt.replace(tzinfo=timezone.utc)
@@ -199,10 +225,17 @@ def fetch_feed_xml(url):
 def parse_rss_xml(xml_bytes, source_name, max_items, max_days_old=7):
     if not xml_bytes:
         return []
-    
+
+    # Some feeds emit a UTF-8 BOM or blank lines before the XML declaration, which
+    # makes the strict parser raise "declaration not at start of entity". Trim any
+    # leading whitespace/BOM so these otherwise-valid feeds still parse.
+    xml_bytes = xml_bytes.lstrip()
+    if xml_bytes.startswith(b'\xef\xbb\xbf'):
+        xml_bytes = xml_bytes[3:].lstrip()
+
     articles = []
     cutoff_date = datetime.now(timezone.utc) - timedelta(days=max_days_old)
-    
+
     try:
         root = ET.fromstring(xml_bytes)
         channel = root.find("channel")
@@ -233,9 +266,11 @@ def parse_rss_xml(xml_bytes, source_name, max_items, max_days_old=7):
                 
             pub_date_raw = pub_date_elem.text if pub_date_elem is not None else ""
             pub_datetime = parse_rfc822_date(pub_date_raw)
-            
-            # Apply strict date filter (except if date parsing fails entirely)
-            if pub_datetime and pub_datetime < cutoff_date:
+
+            # Hard recency filter: an item must carry a parseable date inside the
+            # window. Undated items cannot be proven recent, so they are dropped
+            # rather than silently admitted.
+            if pub_datetime is None or pub_datetime < cutoff_date:
                 continue
                 
             desc_elem = item.find("description")
@@ -425,8 +460,17 @@ def fetch_local_emails(env_vars, newsletter_configs, max_days_old=7):
         
     return articles
 
-def fetch_and_process_topic(topic_name, topic_config, max_items_per_feed, max_days_old):
-    """Concurrently download feeds for a topic, processing Basis vs Auxiliary news."""
+def fetch_and_process_topic(topic_name, topic_config, default_feed_cap, max_days_old, safety_ceiling):
+    """Concurrently download feeds for a topic, processing Basis vs Auxiliary news.
+
+    There is no everyday per-topic story cap: every item that clears the hard recency
+    filter is kept and the list is ordered newest-first, so a topic that genuinely
+    produced 20 fresh stories shows all 20. The only routine limiter is each feed's own
+    ``max_items`` (falling back to ``default_feed_cap``), which prevents a single
+    noisy source from dominating the topic.
+
+    ``safety_ceiling`` is a hidden guardrail (not exposed in the UI) that trims the
+    final list only in pathological cases where a feed floods a topic."""
     topic_data = {
         "name": topic_name,
         "basis": None,
@@ -454,25 +498,28 @@ def fetch_and_process_topic(topic_name, topic_config, max_items_per_feed, max_da
                 feed = future_to_feed[future]
                 try:
                     xml_data = future.result()
-                    # Feed-specific maximum cap to prevent source domination, fallback to 3
-                    feed_max = int(feed.get("max_items", 3))
+                    # Feed-specific cap to prevent a single source dominating the
+                    # topic; falls back to the global default when unspecified.
+                    feed_max = int(feed.get("max_items", default_feed_cap))
                     items = parse_rss_xml(xml_data, feed["name"], feed_max, max_days_old)
                     topic_data["auxiliary"].extend(items)
                 except Exception as e:
                     print(f"  Error fetching {feed['name']} auxiliary: {e}")
                     
-        # Sort auxiliary articles chronologically
+        # Order auxiliary articles newest-first (time-prioritized).
         topic_data["auxiliary"] = [a for a in topic_data["auxiliary"] if a["datetime"] is not None]
         topic_data["auxiliary"].sort(key=lambda x: x["datetime"], reverse=True)
-        # De-duplicate articles by link
+        # De-duplicate articles by link. No global per-topic truncation is applied:
+        # recency is the only gate, so all fresh stories survive.
         seen_links = set()
         unique_aux = []
         for a in topic_data["auxiliary"]:
             if a["link"] not in seen_links:
                 seen_links.add(a["link"])
                 unique_aux.append(a)
-        topic_data["auxiliary"] = unique_aux[:max_items_per_feed * 2]
-        
+        # Hidden safety ceiling: guardrail against a runaway feed, not an everyday cap.
+        topic_data["auxiliary"] = unique_aux[:safety_ceiling]
+
     return topic_data
 
 def render_basis_html(basis):
@@ -551,8 +598,15 @@ def compile_digest(silent=False):
         config_raw_str = f.read()
         config = json.loads(config_raw_str)
         
-    max_items = config.get("max_items_per_feed", 10)
+    # Default number of stories pulled from a single source per refresh. This is a
+    # per-feed fallback (used when a feed omits its own "max_items"), not a per-topic
+    # ceiling — topics are bounded by recency, not by a fixed story count.
+    default_feed_cap = config.get("max_items_per_feed", 6)
     max_days_old = config.get("max_days_old", 7)
+    # Hidden per-topic safety ceiling. Deliberately not surfaced in the settings UI;
+    # it only exists to stop a malfunctioning feed from flooding a single topic.
+    # Tunable for power users via "max_total_per_topic" in config.json.
+    safety_ceiling = config.get("max_total_per_topic", 60)
     
     # 2. Check local environment credentials
     env_vars = load_env(ENV_PATH)
@@ -586,7 +640,7 @@ def compile_digest(silent=False):
                 task = futures[future]
                 try:
                     xml_data = future.result()
-                    items = parse_rss_xml(xml_data, task["name"], max_items, max_days_old)
+                    items = parse_rss_xml(xml_data, task["name"], default_feed_cap, max_days_old)
                     fallback_newsletter_articles.extend(items)
                 except Exception as e:
                     print(f"  Error fetching public fallback {task['name']}: {e}")
@@ -604,7 +658,7 @@ def compile_digest(silent=False):
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(topics))) as executor:
         future_to_topic = {
-            executor.submit(fetch_and_process_topic, name, conf, max_items, max_days_old): name 
+            executor.submit(fetch_and_process_topic, name, conf, default_feed_cap, max_days_old, safety_ceiling): name
             for name, conf in topics.items()
             if conf.get("enabled", True)
         }

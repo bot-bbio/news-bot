@@ -494,6 +494,54 @@
     .input-field:focus {
       border-color: var(--accent-crimson);
     }
+
+    /* Collapsible topic cards inside the editor (default collapsed) */
+    .topic-editor-details {
+      border: 1px solid var(--border-color);
+      margin-bottom: 0.75rem;
+      background: rgba(0, 0, 0, 0.005);
+    }
+
+    .topic-editor-summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 0.85rem;
+      outline: none;
+      user-select: none;
+      font-family: var(--font-ui);
+    }
+
+    .topic-editor-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .topic-editor-summary .editor-caret::before {
+      content: "\25B6";
+      font-size: 0.65rem;
+      color: var(--accent-crimson);
+      display: inline-block;
+      transition: transform 0.15s ease;
+    }
+
+    .topic-editor-details[open] .topic-editor-summary .editor-caret::before {
+      content: "\25BC";
+    }
+
+    .topic-editor-body {
+      padding: 0 0.85rem 0.85rem 0.85rem;
+      border-top: 1px solid var(--border-color);
+      padding-top: 0.75rem;
+    }
+
+    .topic-editor-feed-count {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
@@ -511,7 +559,7 @@
       <div class="search-wrapper">
         <input type="text" class="search-input" id="search-box" placeholder="Filter articles by keyword, topic, or source..." oninput="filterDigest()">
       </div>
-      <button class="btn" id="btn-toggle-read" onclick="toggleHideRead()">Hide Read</button>
+      <button class="btn active" id="btn-toggle-read" onclick="toggleHideRead()">Show Read</button>
     </div>
 
     <!-- Briefing Settings Drawer -->
@@ -521,15 +569,16 @@
         <!-- 1. Global Settings Section -->
         <div>
           <div class="settings-section-title">Global Settings</div>
-          <div class="settings-desc">Configure the recency filter cutoff and default feed gathering cap.</div>
+          <div class="settings-desc">Stories are time-prioritized: there is no per-topic story cap — every article inside the recency window is shown, newest first. The two controls below set the hard recency cutoff and the default number of stories pulled from each source per refresh.</div>
           <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
             <div style="flex: 1; min-width: 180px;">
-              <label for="global-max-days" style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem; font-family: var(--font-ui);">Recency Cutoff (days)</label>
+              <label for="global-max-days" style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem; font-family: var(--font-ui);">Recency Cutoff (days, hard filter)</label>
               <input type="number" class="input-field" id="global-max-days" min="1" max="365" style="width: 100%; padding: 0.4rem 0.6rem;">
             </div>
             <div style="flex: 1; min-width: 180px;">
-              <label for="global-max-items" style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem; font-family: var(--font-ui);">Global Default Cap (stories per feed)</label>
+              <label for="global-max-items" style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem; font-family: var(--font-ui);">Max Sources Per Refresh (default per feed)</label>
               <input type="number" class="input-field" id="global-max-items" min="1" max="100" style="width: 100%; padding: 0.4rem 0.6rem;">
+              <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; font-family: var(--font-ui);">Applied to any feed without its own per-source limit.</div>
             </div>
           </div>
         </div>
@@ -624,115 +673,94 @@
 
   <script>
     const CURRENT_CONFIG = {CONFIG_JSON};
-    let hideRead = false;
+    let hideRead = true; // Marking a story read dismisses it: hide-read is on by default.
     let readArticles = JSON.parse(localStorage.getItem('news_bot_read_articles') || '[]');
     let configObj = CURRENT_CONFIG;
 
     document.addEventListener('DOMContentLoaded', () => {
       applyTopicOrder();
-      applyLocalState();
-      updateCounts();
+      syncReadButton();
+      applyVisibility();
       initSettings();
     });
 
-    function applyLocalState() {
-      document.querySelectorAll('.aux-item, .basis-doc').forEach(item => {
-        const id = item.dataset.articleId;
-        if (readArticles.includes(id)) {
-          item.classList.add('read');
-          if (hideRead) {
-            item.style.display = 'none';
-          }
-        }
-      });
+    // --- Centralized visibility -------------------------------------------------
+    // Single source of truth for whether each story is shown, combining the
+    // read / hide-read state and the search query.
+    function itemMatchesQuery(item, query) {
+      if (!query) return true;
+      const a = item.querySelector('a');
+      const title = a ? a.innerText.toLowerCase() : '';
+      const sourceEl = item.querySelector('.meta-source');
+      const source = sourceEl ? sourceEl.innerText.toLowerCase() : '';
+      const descEl = item.querySelector('.basis-desc, .aux-snippet');
+      const desc = descEl ? descEl.innerText.toLowerCase() : '';
+      return title.includes(query) || source.includes(query) || desc.includes(query);
     }
 
-    function toggleHideRead() {
-      hideRead = !hideRead;
-      const btn = document.getElementById('btn-toggle-read');
-      btn.innerText = hideRead ? "Show Read" : "Hide Read";
-      btn.classList.toggle('active', hideRead);
-
-      document.querySelectorAll('.aux-item, .basis-doc').forEach(item => {
-        if (item.classList.contains('read')) {
-          item.style.display = hideRead ? 'none' : 'flex';
-          if (item.classList.contains('basis-doc') && !hideRead) {
-            item.style.display = 'block';
-          }
-        }
-      });
-      updateCounts();
-    }
-
-    function toggleRead(articleId) {
-      const card = document.querySelector(`[data-article-id="${articleId}"]`);
-      if (!card) return;
-
-      const isRead = card.classList.toggle('read');
-      
-      if (isRead) {
-        if (!readArticles.includes(articleId)) {
-          readArticles.push(articleId);
-        }
-        if (hideRead) {
-          card.style.display = 'none';
-        }
-      } else {
-        readArticles = readArticles.filter(id => id !== articleId);
-      }
-      
-      localStorage.setItem('news_bot_read_articles', JSON.stringify(readArticles));
-      updateCounts();
-    }
-
-    function updateCounts() {
-      document.querySelectorAll('.topic-section').forEach(section => {
-        let count = 0;
-        section.querySelectorAll('.aux-item, .basis-doc').forEach(item => {
-          if (item.style.display !== 'none') {
-            count++;
-          }
-        });
-        const countBadge = section.querySelector('.topic-count');
-        if (countBadge) {
-          countBadge.innerText = `${count} stories`;
-        }
-      });
-    }
-
-    function filterDigest() {
+    function applyVisibility() {
       const query = document.getElementById('search-box').value.toLowerCase().trim();
-      
+
       document.querySelectorAll('.topic-section').forEach(section => {
-        let sectionHasMatch = false;
-        
+        let visibleCount = 0;
+
         section.querySelectorAll('.aux-item, .basis-doc').forEach(item => {
-          const title = item.querySelector('a').innerText.toLowerCase();
-          const source = item.querySelector('.meta-source') ? item.querySelector('.meta-source').innerText.toLowerCase() : '';
-          const desc = item.querySelector('.basis-desc, .aux-snippet') ? item.querySelector('.basis-desc, .aux-snippet').innerText.toLowerCase() : '';
-          
-          const isMatch = title.includes(query) || source.includes(query) || desc.includes(query);
-          
-          if (isMatch) {
-            if (item.classList.contains('read') && hideRead) {
-              item.style.display = 'none';
-            } else {
-              item.style.display = item.classList.contains('basis-doc') ? 'block' : 'flex';
-              sectionHasMatch = true;
-            }
+          const id = item.dataset.articleId;
+          const isRead = readArticles.includes(id);
+
+          // Keep the styling class in sync with persisted state.
+          item.classList.toggle('read', isRead);
+
+          let show = true;
+          if (isRead && hideRead) show = false;
+          if (!itemMatchesQuery(item, query)) show = false;
+
+          if (show) {
+            item.style.display = item.classList.contains('basis-doc') ? 'block' : 'flex';
+            visibleCount++;
           } else {
             item.style.display = 'none';
           }
         });
-        
-        if (query === "") {
-          section.style.display = 'block';
-        } else {
-          section.style.display = sectionHasMatch ? 'block' : 'none';
+
+        section.style.display = (query !== '' && visibleCount === 0) ? 'none' : 'block';
+
+        const countBadge = section.querySelector('.topic-count');
+        if (countBadge) {
+          countBadge.innerText = `${visibleCount} stories`;
         }
       });
-      
-      updateCounts();
+    }
+
+    // Back-compat aliases for existing callers.
+    function updateCounts() { applyVisibility(); }
+    function applyLocalState() { applyVisibility(); }
+
+    function syncReadButton() {
+      const btn = document.getElementById('btn-toggle-read');
+      if (!btn) return;
+      btn.innerText = hideRead ? "Show Read" : "Hide Read";
+      btn.classList.toggle('active', hideRead);
+    }
+
+    function toggleHideRead() {
+      hideRead = !hideRead;
+      syncReadButton();
+      applyVisibility();
+    }
+
+    function toggleRead(articleId) {
+      if (readArticles.includes(articleId)) {
+        readArticles = readArticles.filter(id => id !== articleId);
+      } else {
+        readArticles.push(articleId);
+      }
+      localStorage.setItem('news_bot_read_articles', JSON.stringify(readArticles));
+      applyVisibility();
+    }
+
+    function filterDigest() {
+      applyVisibility();
     }
 
     // Editable Hierarchy (Category Rearranging)
@@ -782,7 +810,7 @@
     function initSettings() {
       // Populate global settings inputs from active configObj
       document.getElementById('global-max-days').value = configObj.max_days_old || 7;
-      document.getElementById('global-max-items').value = configObj.max_items_per_feed || 10;
+      document.getElementById('global-max-items').value = configObj.max_items_per_feed || 6;
       
       renderTopicsEditor();
       renderNewslettersEditor();
@@ -818,36 +846,40 @@
         const topicConf = configObj.topics[topicName];
         if (!topicConf) return;
         
-        const card = document.createElement('div');
-        card.style.border = '1px solid var(--border-color)';
-        card.style.padding = '0.85rem';
-        card.style.marginBottom = '0.75rem';
-        card.style.background = 'rgba(0, 0, 0, 0.005)';
-        
-        // Topic Header
         const isEnabled = topicConf.enabled !== false;
-        const header = document.createElement('div');
-        header.style.display = 'flex';
-        header.style.justify = 'space-between';
-        header.style.alignItems = 'center';
-        header.style.marginBottom = '0.6rem';
-        header.style.borderBottom = '1px solid var(--border-color)';
-        header.style.paddingBottom = '0.3rem';
-        header.innerHTML = `
-          <div style="display:flex; align-items:center; gap:0.5rem;">
-            <input type="checkbox" id="enable-topic-${topicName.replace(/\s+/g, '-')}" ${isEnabled ? 'checked' : ''} 
-                   onchange="toggleTopicEnabled('${escapeHtml(topicName.replace(/'/g, "\\'"))}', this.checked)"
-                   style="cursor:pointer; width:15px; height:15px; vertical-align:middle;">
-            <div style="font-weight:700; font-size:0.95rem; font-family:var(--font-display); vertical-align:middle; ${isEnabled ? '' : 'text-decoration:line-through; opacity:0.5;'}">${escapeHtml(topicName)}</div>
-          </div>
-          <button class="btn" onclick="deleteTopic(event, '${escapeHtml(topicName.replace(/'/g, "\\'"))}')" 
-                  style="border-color:var(--accent-crimson); color:var(--accent-crimson); padding:0.2rem 0.4rem; font-size:0.75rem;">Delete Topic</button>
-        `;
-        card.appendChild(header);
+        const feedCount = (topicConf.feeds || []).length;
+
+        // Collapsible topic card — defaults to collapsed (no 'open' attribute)
+        const card = document.createElement('details');
+        card.className = 'topic-editor-details';
         if (!isEnabled) {
           card.style.opacity = '0.75';
         }
-        
+
+        const summary = document.createElement('summary');
+        summary.className = 'topic-editor-summary';
+        // Interactive controls inside the summary call stopPropagation so clicking
+        // them toggles their own state instead of expanding/collapsing the card.
+        summary.innerHTML = `
+          <span style="display:flex; align-items:center; gap:0.5rem; min-width:0;">
+            <span class="editor-caret"></span>
+            <input type="checkbox" id="enable-topic-${topicName.replace(/\s+/g, '-')}" ${isEnabled ? 'checked' : ''}
+                   onclick="event.stopPropagation()"
+                   onchange="toggleTopicEnabled('${escapeHtml(topicName.replace(/'/g, "\\'"))}', this.checked)"
+                   style="cursor:pointer; width:15px; height:15px; flex-shrink:0;">
+            <span style="font-weight:700; font-size:0.95rem; font-family:var(--font-display); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; ${isEnabled ? '' : 'text-decoration:line-through; opacity:0.5;'}" title="${escapeHtml(topicName)}">${escapeHtml(topicName)}</span>
+          </span>
+          <span style="display:flex; align-items:center; gap:0.6rem; flex-shrink:0;">
+            <span class="topic-editor-feed-count">${feedCount} ${feedCount === 1 ? 'feed' : 'feeds'}</span>
+            <button class="btn" onclick="event.stopPropagation(); deleteTopic(event, '${escapeHtml(topicName.replace(/'/g, "\\'"))}')"
+                    style="border-color:var(--accent-crimson); color:var(--accent-crimson); padding:0.2rem 0.4rem; font-size:0.75rem;">Delete</button>
+          </span>
+        `;
+        card.appendChild(summary);
+
+        const body = document.createElement('div');
+        body.className = 'topic-editor-body';
+
         // Topic Feeds List
         const feedsList = document.createElement('div');
         feedsList.style.display = 'flex';
@@ -869,7 +901,7 @@
             feedRow.style.background = 'var(--bg-paper)';
             feedRow.style.fontSize = '0.8rem';
             
-            const maxVal = feed.max_items !== undefined ? feed.max_items : 3;
+            const maxVal = feed.max_items !== undefined ? feed.max_items : (configObj.max_items_per_feed || 6);
             
             feedRow.innerHTML = `
               <div style="display:flex; flex-direction:column; gap:0.1rem; flex:1; min-width:0; margin-right:0.5rem;">
@@ -888,8 +920,8 @@
             feedsList.appendChild(feedRow);
           });
         }
-        card.appendChild(feedsList);
-        
+        body.appendChild(feedsList);
+
         // Add Feed Input Row
         const addFeedRow = document.createElement('div');
         addFeedRow.style.display = 'flex';
@@ -905,8 +937,9 @@
           <button class="btn" onclick="addFeedToTopic(event, '${escapeHtml(topicName.replace(/'/g, "\\'"))}', '${feedNameId}', '${feedUrlId}')" 
                   style="padding:0.3rem 0.5rem; font-size:0.75rem; flex-shrink:0;">Add Feed</button>
         `;
-        card.appendChild(addFeedRow);
-        
+        body.appendChild(addFeedRow);
+
+        card.appendChild(body);
         container.appendChild(card);
       });
     }
@@ -964,8 +997,7 @@
         "feeds": [
           {
             "name": `Google News (${name})`,
-            "url": `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`,
-            "max_items": 3
+            "url": `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`
           }
         ]
       };
@@ -1015,8 +1047,7 @@
         }
         topic.feeds.push({
           name: name,
-          url: url,
-          max_items: 3
+          url: url
         });
         nameInput.value = '';
         urlInput.value = '';

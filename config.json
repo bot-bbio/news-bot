@@ -5,38 +5,45 @@
       "feeds": [
         {
           "name": "BBC World News",
-          "url": "http://feeds.bbci.co.uk/news/world/rss.xml",
-          "max_items": 3
+          "url": "http://feeds.bbci.co.uk/news/world/rss.xml"
         },
         {
           "name": "The New York Times",
-          "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
-          "max_items": 3
+          "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"
         },
         {
           "name": "The Wall Street Journal",
-          "url": "https://feeds.a.dj.com/rss/RSSWorldNews.xml",
-          "max_items": 3
+          "url": "https://feeds.a.dj.com/rss/RSSWorldNews.xml"
         },
         {
           "name": "NPR World News",
-          "url": "http://www.npr.org/rss/rss.php?id=1004",
-          "max_items": 3
+          "url": "http://www.npr.org/rss/rss.php?id=1004"
+        },
+        {
+          "name": "The Guardian (World)",
+          "url": "https://www.theguardian.com/world/rss"
         },
         {
           "name": "Al Jazeera English",
-          "url": "https://www.aljazeera.com/xml/rss/all.xml",
-          "max_items": 3
+          "url": "https://www.aljazeera.com/xml/rss/all.xml"
         },
         {
           "name": "Deutsche Welle",
-          "url": "https://rss.dw.com/rdf/rss-en-top",
-          "max_items": 3
+          "url": "https://rss.dw.com/rdf/rss-en-top"
         },
         {
           "name": "UPI News",
-          "url": "https://rss.upi.com/news/news.rss",
-          "max_items": 3
+          "url": "https://rss.upi.com/news/news.rss"
+        },
+        {
+          "name": "Associated Press",
+          "url": "https://news.google.com/rss/search?q=site:apnews.com&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
+        },
+        {
+          "name": "Reuters (Top News)",
+          "url": "https://news.google.com/rss/search?q=site:reuters.com&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
         }
       ]
     },
@@ -45,13 +52,28 @@
       "feeds": [
         {
           "name": "Politico Playbook",
-          "url": "https://rss.politico.com/playbook.xml",
-          "max_items": 3
+          "url": "https://rss.politico.com/playbook.xml"
+        },
+        {
+          "name": "Politico Politics",
+          "url": "https://rss.politico.com/politics-news.xml"
+        },
+        {
+          "name": "NPR Politics",
+          "url": "https://feeds.npr.org/1014/rss.xml"
+        },
+        {
+          "name": "NYT Politics",
+          "url": "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml"
+        },
+        {
+          "name": "The Hill",
+          "url": "https://thehill.com/homenews/feed/"
         },
         {
           "name": "Capitol Hill & Congress Wire",
           "url": "https://news.google.com/rss/search?q=site:politico.com/congress+OR+site:rollcall.com+OR+site:thehill.com&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 4
         }
       ]
     },
@@ -61,32 +83,35 @@
         {
           "name": "Bloomberg",
           "url": "https://news.google.com/rss/search?q=site:bloomberg.com/opinion+OR+site:bloomberg.com/news&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 4
         },
         {
           "name": "Financial Times",
           "url": "https://news.google.com/rss/search?q=site:ft.com&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 4
         },
         {
           "name": "Wall Street Journal",
           "url": "https://news.google.com/rss/search?q=site:wsj.com&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 4
         },
         {
           "name": "The Economist",
           "url": "https://news.google.com/rss/search?q=site:economist.com&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 4
+        },
+        {
+          "name": "NYT Business",
+          "url": "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml"
         },
         {
           "name": "CNBC",
-          "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664",
-          "max_items": 3
+          "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664"
         },
         {
           "name": "Reuters",
           "url": "https://news.google.com/rss/search?q=site:reuters.com/markets&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 4
         }
       ]
     },
@@ -95,23 +120,29 @@
       "feeds": [
         {
           "name": "CNBC Business News",
-          "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001147",
-          "max_items": 3
+          "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001147"
         },
         {
           "name": "CNBC Economy",
-          "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=20910258",
-          "max_items": 3
+          "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=20910258"
         },
         {
           "name": "WSJ Markets",
-          "url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
-          "max_items": 3
+          "url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml"
         },
         {
           "name": "MarketWatch Top Stories",
-          "url": "http://feeds.marketwatch.com/marketwatch/topstories/",
-          "max_items": 3
+          "url": "http://feeds.marketwatch.com/marketwatch/topstories/"
+        },
+        {
+          "name": "FT Markets",
+          "url": "https://news.google.com/rss/search?q=site:ft.com/markets&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
+        },
+        {
+          "name": "Reuters Business",
+          "url": "https://news.google.com/rss/search?q=site:reuters.com/business&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
         }
       ]
     },
@@ -119,18 +150,35 @@
       "enabled": true,
       "feeds": [
         {
-          "name": "Bloomberg Law (PE & Law Firms)",
-          "url": "https://news.google.com/rss/search?q=site:news.bloomberglaw.com+%22private+equity%22+OR+%22law+firm%22&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "name": "Illinois HB 5487 (PE in Law Firms)",
+          "url": "https://news.google.com/rss/search?q=%22HB+5487%22+OR+%22House+Bill+5487%22+Illinois+law&hl=en-US&gl=US&ceid=US:en"
         },
         {
-          "name": "Reuters Legal (Law Firms)",
-          "url": "https://news.google.com/rss/search?q=site:reuters.com/legal+%22law+firm%22+OR+%22private+equity%22&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "name": "PE Ownership of Law Firms",
+          "url": "https://news.google.com/rss/search?q=%22private+equity%22+%22law+firm%22+ownership+OR+investment+OR+stake&hl=en-US&gl=US&ceid=US:en"
         },
         {
-          "name": "WSJ Deals & PE",
-          "url": "https://news.google.com/rss/search?q=site:wsj.com+%22private+equity%22+OR+%22venture+capital%22&hl=en-US&gl=US&ceid=US:en",
+          "name": "Nonlawyer Ownership & ABS",
+          "url": "https://news.google.com/rss/search?q=%22nonlawyer+ownership%22+OR+%22non-lawyer+ownership%22+OR+%22alternative+business+structure%22+law+firm&hl=en-US&gl=US&ceid=US:en"
+        },
+        {
+          "name": "Bloomberg Law (PE in Legal)",
+          "url": "https://news.google.com/rss/search?q=site:news.bloomberglaw.com+%22private+equity%22&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
+        },
+        {
+          "name": "Reuters Legal (Law Firm Business)",
+          "url": "https://news.google.com/rss/search?q=site:reuters.com/legal+%22law+firm%22+%22private+equity%22+OR+investment&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
+        },
+        {
+          "name": "Law.com / American Lawyer (PE)",
+          "url": "https://news.google.com/rss/search?q=site:law.com+%22private+equity%22+%22law+firm%22&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
+        },
+        {
+          "name": "Above the Law (PE)",
+          "url": "https://news.google.com/rss/search?q=site:abovethelaw.com+%22private+equity%22&hl=en-US&gl=US&ceid=US:en",
           "max_items": 3
         }
       ]
@@ -141,22 +189,35 @@
         {
           "name": "Associated Press",
           "url": "https://news.google.com/rss/search?q=site:apnews.com&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 4
         },
         {
           "name": "BBC News",
           "url": "https://news.google.com/rss/search?q=site:bbc.com/news+OR+site:bbc.co.uk/news&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 4
         },
         {
           "name": "Al Jazeera",
           "url": "https://news.google.com/rss/search?q=site:aljazeera.com&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 4
         },
         {
           "name": "Reuters (World)",
           "url": "https://news.google.com/rss/search?q=site:reuters.com/world&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 4
+        },
+        {
+          "name": "Foreign Policy",
+          "url": "https://news.google.com/rss/search?q=site:foreignpolicy.com&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
+        },
+        {
+          "name": "Foreign Affairs",
+          "url": "https://www.foreignaffairs.com/rss.xml"
+        },
+        {
+          "name": "France 24",
+          "url": "https://www.france24.com/en/rss"
         }
       ]
     },
@@ -165,38 +226,41 @@
       "feeds": [
         {
           "name": "Politico Europe",
-          "url": "https://www.politico.eu/feed/",
-          "max_items": 3
+          "url": "https://www.politico.eu/feed/"
         },
         {
           "name": "Eurointelligence",
-          "url": "https://eurointelligence.substack.com/feed",
-          "max_items": 3
+          "url": "https://eurointelligence.substack.com/feed"
         },
         {
           "name": "Nikkei Asia",
-          "url": "https://asia.nikkei.com/rss/feed/nar",
-          "max_items": 3
+          "url": "https://asia.nikkei.com/rss/feed/nar"
         },
         {
           "name": "The Diplomat",
-          "url": "https://thediplomat.com/feed/",
-          "max_items": 3
+          "url": "https://thediplomat.com/feed/"
         },
         {
           "name": "East Asia Forum",
           "url": "https://news.google.com/rss/search?q=site:eastasiaforum.org&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 4
         },
         {
           "name": "SCMP",
-          "url": "https://www.scmp.com/rss/91/feed",
-          "max_items": 3
+          "url": "https://www.scmp.com/rss/91/feed"
         },
         {
           "name": "Sinocism",
-          "url": "https://sinocism.com/feed",
-          "max_items": 3
+          "url": "https://sinocism.com/feed"
+        },
+        {
+          "name": "Rest of World",
+          "url": "https://restofworld.org/feed/latest/"
+        },
+        {
+          "name": "Al-Monitor (Middle East)",
+          "url": "https://news.google.com/rss/search?q=site:al-monitor.com&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
         }
       ]
     },
@@ -210,12 +274,22 @@
         {
           "name": "Reuters (Ukraine)",
           "url": "https://news.google.com/rss/search?q=site:reuters.com+Ukraine&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 4
         },
         {
           "name": "Bloomberg (Ukraine)",
           "url": "https://news.google.com/rss/search?q=site:bloomberg.com+Ukraine&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 4
+        },
+        {
+          "name": "Kyiv Independent",
+          "url": "https://news.google.com/rss/search?q=site:kyivindependent.com&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
+        },
+        {
+          "name": "Meduza (English)",
+          "url": "https://news.google.com/rss/search?q=site:meduza.io&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
         }
       ]
     },
@@ -229,7 +303,21 @@
         {
           "name": "Reuters (Iran)",
           "url": "https://news.google.com/rss/search?q=site:reuters.com+Iran&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 4
+        },
+        {
+          "name": "Al Jazeera (Iran)",
+          "url": "https://news.google.com/rss/search?q=site:aljazeera.com+Iran&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
+        },
+        {
+          "name": "Times of Israel",
+          "url": "https://www.timesofisrael.com/feed/"
+        },
+        {
+          "name": "Al-Monitor (Iran)",
+          "url": "https://news.google.com/rss/search?q=site:al-monitor.com+Iran&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
         }
       ]
     },
@@ -238,33 +326,37 @@
       "feeds": [
         {
           "name": "War on the Rocks",
-          "url": "https://warontherocks.com/feed/",
-          "max_items": 3
+          "url": "https://warontherocks.com/feed/"
         },
         {
           "name": "Lawfare",
           "url": "https://news.google.com/rss/search?q=site:lawfaremedia.org&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 4
+        },
+        {
+          "name": "Defense One",
+          "url": "https://www.defenseone.com/rss/all/"
+        },
+        {
+          "name": "Breaking Defense",
+          "url": "https://breakingdefense.com/feed/"
         },
         {
           "name": "Modern War Institute",
-          "url": "https://mwi.westpoint.edu/feed/",
-          "max_items": 3
+          "url": "https://mwi.westpoint.edu/feed/"
         },
         {
           "name": "Articles of War",
-          "url": "https://lieber.westpoint.edu/feed/",
-          "max_items": 3
+          "url": "https://lieber.westpoint.edu/feed/"
         },
         {
           "name": "Small Wars Journal",
           "url": "https://news.google.com/rss/search?q=site:smallwarsjournal.com&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 4
         },
         {
           "name": "Wavell Room",
-          "url": "https://wavellroom.com/feed/",
-          "max_items": 3
+          "url": "https://wavellroom.com/feed/"
         }
       ]
     },
@@ -273,12 +365,21 @@
       "feeds": [
         {
           "name": "Courthouse News Service",
-          "url": "https://www.courthousenews.com/feed/",
-          "max_items": 3
+          "url": "https://www.courthousenews.com/feed/"
         },
         {
           "name": "Reuters Legal (Courts)",
           "url": "https://news.google.com/rss/search?q=site:reuters.com/legal+courts&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
+        },
+        {
+          "name": "Law360",
+          "url": "https://news.google.com/rss/search?q=site:law360.com&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 3
+        },
+        {
+          "name": "Bloomberg Law (Courts)",
+          "url": "https://news.google.com/rss/search?q=site:news.bloomberglaw.com+court&hl=en-US&gl=US&ceid=US:en",
           "max_items": 3
         }
       ]
@@ -288,13 +389,17 @@
       "feeds": [
         {
           "name": "SCOTUSblog",
-          "url": "https://www.scotusblog.com/feed/",
-          "max_items": 3
+          "url": "https://www.scotusblog.com/feed/"
         },
         {
           "name": "Supreme Court Opinions & Coverage",
           "url": "https://news.google.com/rss/search?q=site:supremecourt.gov/opinions+OR+%22Supreme+Court%22+site:nytimes.com&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 4
+        },
+        {
+          "name": "Reuters (Supreme Court)",
+          "url": "https://news.google.com/rss/search?q=site:reuters.com+%22Supreme+Court%22&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
         }
       ]
     },
@@ -303,22 +408,28 @@
       "feeds": [
         {
           "name": "ABA Journal (Top Stories)",
-          "url": "https://feeds.feedburner.com/abajournal/topstories",
-          "max_items": 3
+          "url": "https://feeds.feedburner.com/abajournal/topstories"
         },
         {
           "name": "ABA Journal (Daily News)",
-          "url": "https://feeds.feedburner.com/abajournal/dailynews",
-          "max_items": 3
+          "url": "https://feeds.feedburner.com/abajournal/dailynews"
         },
         {
           "name": "The Volokh Conspiracy",
-          "url": "http://feeds.feedburner.com/volokh/mainfeed",
-          "max_items": 3
+          "url": "http://feeds.feedburner.com/volokh/mainfeed"
+        },
+        {
+          "name": "Above the Law",
+          "url": "https://abovethelaw.com/feed/"
         },
         {
           "name": "Justia Legal News",
           "url": "https://news.google.com/rss/search?q=site:news.justia.com&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
+        },
+        {
+          "name": "Law.com",
+          "url": "https://news.google.com/rss/search?q=site:law.com&hl=en-US&gl=US&ceid=US:en",
           "max_items": 3
         }
       ]
@@ -332,24 +443,28 @@
           "max_items": 3
         },
         {
+          "name": "MIT Technology Review (AI)",
+          "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed/"
+        },
+        {
           "name": "Import AI",
-          "url": "https://importai.substack.com/feed",
-          "max_items": 3
+          "url": "https://importai.substack.com/feed"
         },
         {
           "name": "Interconnects",
-          "url": "https://www.interconnects.ai/feed",
-          "max_items": 3
+          "url": "https://www.interconnects.ai/feed"
         },
         {
           "name": "Latent Space",
-          "url": "https://www.latent.space/feed",
-          "max_items": 3
+          "url": "https://www.latent.space/feed"
+        },
+        {
+          "name": "Ahead of AI",
+          "url": "https://magazine.sebastianraschka.com/feed"
         },
         {
           "name": "One Useful Thing",
-          "url": "https://oneusefulthing.substack.com/feed",
-          "max_items": 3
+          "url": "https://oneusefulthing.substack.com/feed"
         }
       ]
     },
@@ -362,23 +477,28 @@
           "max_items": 3
         },
         {
-          "name": "Hacker News",
-          "url": "https://news.ycombinator.com/rss",
-          "max_items": 3
+          "name": "Data Center Dynamics",
+          "url": "https://www.datacenterdynamics.com/en/rss/"
         },
         {
-          "name": "ServeTheHome",
-          "url": "https://www.servethehome.com/feed/",
-          "max_items": 3
+          "name": "SemiAnalysis",
+          "url": "https://www.semianalysis.com/feed"
         },
         {
           "name": "The Next Platform",
-          "url": "https://www.nextplatform.com/feed/",
-          "max_items": 3
+          "url": "https://www.nextplatform.com/feed/"
+        },
+        {
+          "name": "ServeTheHome",
+          "url": "https://www.servethehome.com/feed/"
         },
         {
           "name": "Cloudflare Blog",
-          "url": "https://blog.cloudflare.com/rss/",
+          "url": "https://blog.cloudflare.com/rss/"
+        },
+        {
+          "name": "Hacker News",
+          "url": "https://news.ycombinator.com/rss",
           "max_items": 3
         }
       ]
@@ -392,19 +512,28 @@
           "max_items": 3
         },
         {
+          "name": "Krebs on Security",
+          "url": "https://krebsonsecurity.com/feed/"
+        },
+        {
+          "name": "The Record",
+          "url": "https://therecord.media/feed/"
+        },
+        {
           "name": "Risky Business",
-          "url": "https://risky.biz/feeds/risky-business-news",
-          "max_items": 3
+          "url": "https://risky.biz/feeds/risky-business-news"
         },
         {
           "name": "Schneier on Security",
-          "url": "https://www.schneier.com/feed/atom/",
-          "max_items": 3
+          "url": "https://www.schneier.com/feed/atom/"
         },
         {
           "name": "BleepingComputer",
-          "url": "https://www.bleepingcomputer.com/feed/",
-          "max_items": 3
+          "url": "https://www.bleepingcomputer.com/feed/"
+        },
+        {
+          "name": "The Hacker News",
+          "url": "https://feeds.feedburner.com/TheHackersNews"
         }
       ]
     },
@@ -412,14 +541,28 @@
       "enabled": true,
       "feeds": [
         {
+          "name": "Quanta Magazine",
+          "url": "https://www.quantamagazine.org/feed/"
+        },
+        {
+          "name": "Nautilus",
+          "url": "https://nautil.us/feed/"
+        },
+        {
+          "name": "Nature News",
+          "url": "https://www.nature.com/nature.rss"
+        },
+        {
           "name": "Astral Codex Ten",
-          "url": "https://astralcodexten.substack.com/feed/",
-          "max_items": 3
+          "url": "https://astralcodexten.substack.com/feed/"
         },
         {
           "name": "Works in Progress",
-          "url": "https://worksinprogress.substack.com/feed/",
-          "max_items": 3
+          "url": "https://worksinprogress.substack.com/feed/"
+        },
+        {
+          "name": "Construction Physics",
+          "url": "https://www.construction-physics.com/feed"
         }
       ]
     },
@@ -427,19 +570,32 @@
       "enabled": true,
       "feeds": [
         {
+          "name": "The New York Times Magazine",
+          "url": "https://rss.nytimes.com/services/xml/rss/nyt/Magazine.xml"
+        },
+        {
+          "name": "The Atlantic",
+          "url": "https://www.theatlantic.com/feed/all/"
+        },
+        {
+          "name": "The New Yorker",
+          "url": "https://www.newyorker.com/feed/everything"
+        },
+        {
+          "name": "Longreads",
+          "url": "https://longreads.com/feed/"
+        },
+        {
           "name": "The Guardian (The Long Read)",
-          "url": "https://www.theguardian.com/news/series/the-long-read/rss",
-          "max_items": 3
+          "url": "https://www.theguardian.com/news/series/the-long-read/rss"
         },
         {
           "name": "ProPublica",
-          "url": "https://www.propublica.org/feeds/propublica/main",
-          "max_items": 3
+          "url": "https://www.propublica.org/feeds/propublica/main"
         },
         {
           "name": "Atavist Magazine",
-          "url": "https://atavist.com/feed/",
-          "max_items": 3
+          "url": "https://atavist.com/feed/"
         }
       ]
     },
@@ -447,19 +603,38 @@
       "enabled": true,
       "feeds": [
         {
-          "name": "The New Yorker (Culture)",
-          "url": "https://www.newyorker.com/feed/culture",
-          "max_items": 3
-        },
-        {
-          "name": "Aeon",
-          "url": "https://aeon.co/feed.rss",
-          "max_items": 3
+          "name": "The New York Times (Books)",
+          "url": "https://rss.nytimes.com/services/xml/rss/nyt/Books.xml"
         },
         {
           "name": "NYT Arts & Culture",
-          "url": "https://rss.nytimes.com/services/xml/rss/nyt/Arts.xml",
-          "max_items": 3
+          "url": "https://rss.nytimes.com/services/xml/rss/nyt/Arts.xml"
+        },
+        {
+          "name": "The New Yorker (Culture)",
+          "url": "https://www.newyorker.com/feed/culture"
+        },
+        {
+          "name": "The Atlantic (Culture)",
+          "url": "https://www.theatlantic.com/feed/channel/culture/"
+        },
+        {
+          "name": "Aeon",
+          "url": "https://aeon.co/feed.rss"
+        },
+        {
+          "name": "Vulture",
+          "url": "https://news.google.com/rss/search?q=site:vulture.com&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
+        },
+        {
+          "name": "The Paris Review",
+          "url": "https://www.theparisreview.org/blog/feed/"
+        },
+        {
+          "name": "Los Angeles Review of Books",
+          "url": "https://news.google.com/rss/search?q=site:lareviewofbooks.org&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
         }
       ]
     },
@@ -468,18 +643,32 @@
       "feeds": [
         {
           "name": "Variety (Film)",
-          "url": "https://variety.com/v/film/feed/",
-          "max_items": 3
+          "url": "https://variety.com/v/film/feed/"
         },
         {
-          "name": "Roger Ebert",
-          "url": "https://www.rogerebert.com/feed",
-          "max_items": 3
+          "name": "Financial Times (Film)",
+          "url": "https://news.google.com/rss/search?q=site:ft.com+film+OR+cinema&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
+        },
+        {
+          "name": "Deadline",
+          "url": "https://deadline.com/feed/"
         },
         {
           "name": "IndieWire",
-          "url": "https://www.indiewire.com/feed",
-          "max_items": 3
+          "url": "https://www.indiewire.com/feed"
+        },
+        {
+          "name": "The Film Stage",
+          "url": "https://thefilmstage.com/feed/"
+        },
+        {
+          "name": "Little White Lies",
+          "url": "https://lwlies.com/feed/"
+        },
+        {
+          "name": "Roger Ebert",
+          "url": "https://www.rogerebert.com/feed"
         }
       ]
     }
@@ -499,5 +688,5 @@
     }
   ],
   "max_days_old": 7,
-  "max_items_per_feed": 13
+  "max_items_per_feed": 6
 }
