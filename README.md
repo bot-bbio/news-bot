@@ -9,54 +9,55 @@ A serverless, private news aggregator designed to compile a lean, text-centric d
 3. **Time-Prioritized, No Story Cap:** There is no fixed per-topic story limit. Every article that clears the recency filter is shown, ordered newest-first — so a topic that genuinely produced 20 fresh stories displays all 20. The only limiter is each source's own per-feed cap, which prevents a single outlet from dominating.
 4. **Hard 7-Day Recency Filter:** Articles older than 7 days are discarded, and items with no parseable publication date are dropped rather than admitted — recency is enforced, not assumed.
 5. **One-Click Story Triage:** Mark any story as *Read* to dismiss it — read stories are hidden by default and stay hidden across refreshes (the read list is remembered locally). A *Show Read* toggle in the toolbar brings them back whenever you want to review what you've cleared.
-6. **Secure Local Email Newsletter Integration:** Fetch your email newsletters (like Ed Zitron's *Where's Your Ed At* or Matt Levine's *Money Stuff*) directly from your mail folder using secure IMAP. Mails are downloaded locally, parsed, and rendered as collapsible inline documents—ensuring 100% privacy and local-only credential protection.
-7. **No-Config Public Fallbacks:** If email credentials are not set up, the script automatically falls back to scraping public RSS feeds (Substack) and Google News searches (Bloomberg opinion) to find these newsletters.
+6. **Newsletters as RSS Feeds:** Editorial newsletters (e.g. Ed Zitron's *Where's Your Ed At*, Matt Levine's *Money Stuff*) are pulled from their public RSS feeds and collected into a dedicated *Editorials & Newsletters* section. No mail credentials are required.
+7. **Installable PWA, Auto-Refreshed:** The briefing can deploy itself as a private, offline-capable Progressive Web App and refresh on a schedule (see *Deploy as a Hosted PWA*), so you just open the home-screen app and read the latest render.
 
 ---
 
 ## Getting Started
 
-### 1. Setup Your Credentials (Optional)
-If you want to pull newsletters directly from your email inbox:
-1. Copy [.env.example](.env.example) to `.env` in this directory:
-   ```powershell
-   copy .env.example .env
-   ```
-2. Open `.env` and fill in your email details (IMAP server, email address, and an **App Password**).
-3. (Recommended) Create a rule in your mail client to automatically move Zitron and Levine's emails to a subfolder (e.g., `Newsletters`) and set `EMAIL_FOLDER` to that folder name.
-
-*If you do not configure `.env`, the script will automatically fallback to public feeds for Ed Zitron and Matt Levine.*
-
-### 2. Configure Topics
+### 1. Configure Topics
 Open [config.json](config.json) to edit your topics and feeds.
 - **`topics`**: Defines headers. Can contain a `"basis"` configuration (which grabs the single latest report and pins it) and a list of auxiliary `"feeds"`.
-- **`email_newsletters`**: Defines senders, subject keyword filters, and public RSS fallback urls.
+- **`email_newsletters`**: RSS sources for the *Editorials & Newsletters* section. Each entry's `feed_name` is the display label and `fallback_url` is the RSS feed to pull. *(The legacy `sender`/`subject_matches` fields are ignored.)*
 - **`max_days_old`**: Hard recency cutoff — auxiliary articles older than this (default 7 days), and any article without a parseable date, are dropped.
-- **`max_items_per_feed`**: Default number of stories pulled from a single source per refresh (default 6). It is a *per-feed* fallback used when a feed omits its own `max_items` — **not** a per-topic cap. Topics have no fixed story limit; they are bounded only by recency.
-- **`max_total_per_topic`** *(optional, advanced)*: A hidden per-topic safety ceiling (default 60) that only trims a topic if a malfunctioning feed floods it. It is intentionally **not** shown in the settings UI; edit it directly in `config.json` if you ever need to change it.
+- **`max_items_per_feed`**: Default number of stories pulled from a single source per refresh (default 6). A *per-feed* fallback used when a feed omits its own `max_items` — **not** a per-topic cap. Topics have no fixed story limit; they are bounded only by recency.
+- **`max_total_per_topic`** *(optional, advanced)*: A hidden per-topic safety ceiling (default 60) that only trims a topic if a malfunctioning feed floods it. Not shown in the settings UI; edit it directly in `config.json`.
 
-### 3. Run Manually
-Double-click [refresh.bat](refresh.bat) (or run `python generate.py` in your terminal).
-This will compile `digest.html` and launch it in your browser.
+### 2. Run Locally (authoring & preview)
+- Double-click [refresh.bat](refresh.bat) — runs the local server (`python generate.py --serve`) and opens the interactive digest with the full **Briefing Settings** drawer for editing topics, feeds, and newsletters.
+- Or run `python generate.py` to compile `digest.html` once and open it in your browser.
+- Run the tests with `python test_generate.py`.
 
-### 4. Background Scheduling (Windows Task Scheduler)
-To silently refresh the page in the background every 4 hours:
-1. Open PowerShell.
-2. Run the scheduling script:
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File .\schedule.ps1
-   ```
-You can bookmark the generated `digest.html` in your browser. It will update silently without browser popups when run in the background.
+### 3. Deploy as a Hosted PWA (twice-daily auto-refresh)
+The briefing can run itself: a GitHub Actions cron renders each user's config and deploys an installable, offline-capable PWA to Cloudflare Pages at ~6am and ~5pm America/New_York. Open the home-screen app on your schedule and it shows the latest render — no email, no notifications.
+
+**Render a hosted build by hand (to preview or deploy manually):**
+```powershell
+python generate.py --mode=hosted --config config.json --out dist
+```
+This writes `dist/index.html` (read + triage UI, no settings drawer) plus `manifest.json`, `sw.js`, and `icon.svg`.
+
+**One-time setup for the automated flow:**
+1. **Cloudflare Pages:** create one Pages project per user (e.g. `newsbot-user1`). Add a [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/) policy limiting each project to that user's email (use a ~30-day session so the installed PWA rarely re-prompts). Add a custom domain if you like.
+2. **Host each config privately** (a private repo raw URL or a secret gist) so the workflow can fetch it.
+3. **Add repository secrets** (Settings → Secrets and variables → Actions):
+   - `CLOUDFLARE_API_TOKEN` (scope: *Cloudflare Pages: Edit*) and `CLOUDFLARE_ACCOUNT_ID`
+   - `CONFIG_FETCH_TOKEN` *(optional)* — bearer token for private config URLs
+   - `USER1_CONFIG_URL`, `USER1_PAGES_PROJECT`, `USER2_CONFIG_URL`, `USER2_PAGES_PROJECT`
+4. The schedule lives in [.github/workflows/refresh.yml](.github/workflows/refresh.yml). Trigger it from the **Actions** tab to test (manual runs bypass the time gate).
+5. On each phone, open the user's Pages URL once and **Add to Home Screen** to install the PWA.
 
 ---
 
 ## File Structure
 
 - [config.json](config.json) — Hierarchical topics and feed sources.
-- [generate.py](generate.py) — Parser script with parallel RSS fetching, strict date filtering, and secure IMAP polling.
-- [test_generate.py](test_generate.py) — Network-free behavioral tests for the recency filter and story-capping logic (`python test_generate.py`).
-- [template.html](template.html) — Text-centric, paper-styled HTML layout.
-- [refresh.bat](refresh.bat) — Double-click to refresh and open.
-- [schedule.ps1](schedule.ps1) — Background Task Scheduler registry.
-- `.env` — Local credential storage (gitignored).
-- `digest.html` — The compiled output news briefing page (gitignored).
+- [generate.py](generate.py) — Parser with parallel RSS fetching, hard recency filtering, and two render modes: `local` (interactive `digest.html`) and `hosted` (a deploy-ready PWA folder).
+- [test_generate.py](test_generate.py) — Network-free behavioral tests for the recency/cap logic and the local/hosted render (`python test_generate.py`).
+- [template.html](template.html) — Text-centric, paper-styled HTML layout (the settings drawer is stripped from hosted builds).
+- [.github/workflows/refresh.yml](.github/workflows/refresh.yml) — Bi-daily GitHub Actions cron that renders and deploys each user's PWA to Cloudflare Pages.
+- [refresh.bat](refresh.bat) — Double-click to run the local server and open the digest.
+- [schedule.ps1](schedule.ps1) — *(optional)* Windows Task Scheduler registration for a local background refresh.
+- `dist/` — Hosted build output, one folder per user (gitignored).
+- `digest.html` — The compiled local briefing page (gitignored).

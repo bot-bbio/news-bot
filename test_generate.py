@@ -7,6 +7,10 @@ time-priority ordering, no per-topic cap, per-feed limits) rather than live feed
 Run:  python test_generate.py
 """
 
+import json
+import os
+import shutil
+import tempfile
 import unittest
 from datetime import datetime, timezone, timedelta
 from email.utils import format_datetime
@@ -192,6 +196,82 @@ class TopicCapTests(unittest.TestCase):
             "Topic", topic_config, default_feed_cap=6, max_days_old=7, safety_ceiling=1000)
         links = [a["link"] for a in result["auxiliary"]]
         self.assertEqual(len(links), len(set(links)), "duplicate links should be collapsed")
+
+
+class CompileDigestTests(unittest.TestCase):
+    """End-to-end render tests for local vs hosted output (network stubbed)."""
+
+    def setUp(self):
+        self.now = datetime.now(timezone.utc)
+        self._orig_fetch = generate.fetch_feed_xml
+        # Any feed/newsletter URL returns one fresh item.
+        generate.fetch_feed_xml = lambda url: _rss([
+            ("Fresh story", url + "#a", _rfc822(self.now - timedelta(hours=1))),
+        ])
+        self.tmp = tempfile.mkdtemp()
+        self.config_path = os.path.join(self.tmp, "config.json")
+        with open(self.config_path, "w", encoding="utf-8") as f:
+            json.dump({
+                "topics": {
+                    "World": {"enabled": True, "feeds": [
+                        {"name": "Reuters", "url": "https://example.com/r", "max_items": 3}
+                    ]}
+                },
+                "email_newsletters": [
+                    {"sender": "x@y.z", "subject_matches": "", "feed_name": "Ed Zitron",
+                     "fallback_url": "https://example.com/zitron"}
+                ],
+                "max_days_old": 7,
+                "max_items_per_feed": 6
+            }, f)
+
+    def tearDown(self):
+        generate.fetch_feed_xml = self._orig_fetch
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_hosted_mode_emits_pwa_and_strips_settings(self):
+        out_dir = os.path.join(self.tmp, "dist")
+        ok = generate.compile_digest(silent=True, mode="hosted",
+                                     config_source=self.config_path, out_path=out_dir)
+        self.assertTrue(ok)
+        for asset in ("index.html", "manifest.json", "sw.js", "icon.svg"):
+            self.assertTrue(os.path.exists(os.path.join(out_dir, asset)), f"missing {asset}")
+
+        idx = open(os.path.join(out_dir, "index.html"), encoding="utf-8").read()
+        self.assertNotIn('class="settings-drawer"', idx, "hosted build must drop the settings drawer")
+        self.assertNotIn("HOSTED_STRIP", idx, "strip markers must be removed")
+        self.assertNotIn("{PWA_HEAD}", idx)
+        self.assertNotIn("{PWA_FOOT}", idx)
+        self.assertIn('rel="manifest"', idx)
+        self.assertIn("serviceWorker", idx)
+        # Newsletters still render (as RSS) in their own section.
+        self.assertIn("Editorials & Newsletters", idx)
+
+    def test_local_mode_keeps_settings_and_writes_single_file(self):
+        out_file = os.path.join(self.tmp, "digest.html")
+        ok = generate.compile_digest(silent=True, mode="local",
+                                     config_source=self.config_path, out_path=out_file)
+        self.assertTrue(ok)
+        self.assertTrue(os.path.exists(out_file))
+        page = open(out_file, encoding="utf-8").read()
+        self.assertIn('class="settings-drawer"', page, "local build keeps the settings drawer")
+        self.assertNotIn("{PWA_HEAD}", page)
+        self.assertNotIn("{PWA_FOOT}", page)
+
+
+class ConfigSourceTests(unittest.TestCase):
+    def test_local_path_loads(self):
+        tmp = tempfile.mkdtemp()
+        try:
+            p = os.path.join(tmp, "c.json")
+            with open(p, "w", encoding="utf-8") as f:
+                f.write('{"topics": {}}')
+            self.assertEqual(generate.load_config_source(p), '{"topics": {}}')
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_missing_path_returns_none(self):
+        self.assertIsNone(generate.load_config_source("/no/such/config-xyz.json"))
 
 
 if __name__ == "__main__":

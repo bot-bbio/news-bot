@@ -420,7 +420,8 @@
         },
         {
           "name": "Above the Law",
-          "url": "https://abovethelaw.com/feed/"
+          "url": "https://news.google.com/rss/search?q=site:abovethelaw.com&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 4
         },
         {
           "name": "Justia Legal News",
@@ -550,7 +551,8 @@
         },
         {
           "name": "Nature News",
-          "url": "https://www.nature.com/nature.rss"
+          "url": "https://news.google.com/rss/search?q=site:nature.com/articles+news&hl=en-US&gl=US&ceid=US:en",
+          "max_items": 3
         },
         {
           "name": "Astral Codex Ten",

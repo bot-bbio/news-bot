@@ -10,9 +10,6 @@ import webbrowser
 import hashlib
 import concurrent.futures
 import html
-import imaplib
-import email
-from email.header import decode_header
 from email.utils import parsedate_to_datetime
 import http.server
 import socketserver
@@ -24,23 +21,128 @@ PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(PROJECT_DIR, "config.json")
 TEMPLATE_PATH = os.path.join(PROJECT_DIR, "template.html")
 OUTPUT_PATH = os.path.join(PROJECT_DIR, "digest.html")
-ENV_PATH = os.path.join(PROJECT_DIR, ".env")
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
-def load_env(env_path):
-    """Load variables from a local .env file (gitignored) into a dictionary."""
-    env_vars = {}
-    if os.path.exists(env_path):
-        with open(env_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith('#'):
-                      continue
-                if '=' in line:
-                    k, v = line.split('=', 1)
-                    env_vars[k.strip()] = v.strip()
-    return env_vars
+# --- PWA assets emitted by the hosted build -------------------------------------
+# Injected into the page <head> in hosted mode so the digest is installable to the
+# home screen and works offline.
+PWA_HEAD_TAGS = """  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#fdfbf7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#141414" media="(prefers-color-scheme: dark)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="news-bot">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">"""
+
+# Injected before </body> in hosted mode to register the service worker.
+PWA_FOOT_TAGS = """  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function (e) {
+          console.warn('Service worker registration failed:', e);
+        });
+      });
+    }
+  </script>"""
+
+PWA_MANIFEST_JSON = """{
+  "name": "news-bot daily briefing",
+  "short_name": "news-bot",
+  "description": "Your clean daily briefing digest",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fdfbf7",
+  "theme_color": "#fdfbf7",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
+"""
+
+PWA_ICON_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#fdfbf7"/>
+  <text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" font-family="Georgia, 'Times New Roman', Times, serif" font-size="340" font-weight="700" fill="#991b1b">n</text>
+</svg>
+"""
+
+# Network-first so the latest twice-daily render always wins; cache is only a
+# fallback for offline reading. (Note: if a Cloudflare Access session has expired,
+# the document fetch may return the login page — a re-open re-authenticates.)
+PWA_SERVICE_WORKER = """const CACHE = 'news-bot-v1';
+
+self.addEventListener('install', function (event) {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', function (event) {
+  event.waitUntil(
+    caches.keys().then(function (keys) {
+      return Promise.all(keys.filter(function (k) { return k !== CACHE; })
+        .map(function (k) { return caches.delete(k); }));
+    }).then(function () { return self.clients.claim(); })
+  );
+});
+
+self.addEventListener('fetch', function (event) {
+  var req = event.request;
+  if (req.method !== 'GET') return;
+
+  var accept = req.headers.get('accept') || '';
+  var isDocument = req.mode === 'navigate' || accept.indexOf('text/html') !== -1;
+
+  if (isDocument) {
+    event.respondWith(
+      fetch(req).then(function (res) {
+        var copy = res.clone();
+        caches.open(CACHE).then(function (c) { c.put(req, copy); });
+        return res;
+      }).catch(function () {
+        return caches.match(req).then(function (r) { return r || caches.match('./'); });
+      })
+    );
+  } else {
+    event.respondWith(
+      caches.match(req).then(function (cached) {
+        return cached || fetch(req).then(function (res) {
+          var copy = res.clone();
+          caches.open(CACHE).then(function (c) { c.put(req, copy); });
+          return res;
+        });
+      })
+    );
+  }
+});
+"""
+
+
+def load_config_source(source):
+    """Load raw config JSON text from a local path or an http(s) URL.
+
+    Remote URLs may be private; set the CONFIG_FETCH_TOKEN environment variable to
+    send an 'Authorization: Bearer <token>' header (e.g. a token-gated gist/repo).
+    Returns the raw text, or None if it could not be loaded."""
+    if source and (source.startswith("http://") or source.startswith("https://")):
+        headers = {"User-Agent": USER_AGENT}
+        token = os.environ.get("CONFIG_FETCH_TOKEN")
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        req = urllib.request.Request(source, headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=15) as response:
+                return response.read().decode("utf-8")
+        except Exception as e:
+            print(f"  Error fetching config from {source}: {e}")
+            return None
+    path = source or CONFIG_PATH
+    if not os.path.exists(path):
+        return None
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
 
 PAYWALLED_DOMAINS = [
     "bloomberg.com",
@@ -83,39 +185,6 @@ def clean_html(raw_html):
     clean_text = html.unescape(clean_text)
     clean_text = re.sub(r'\s+', ' ', clean_text).strip()
     return clean_text
-
-def clean_email_html(raw_html):
-    """Clean layout tables/div styles from HTML email newsletter bodies for inline reading."""
-    if not raw_html:
-        return ""
-    # Strip script/style tags
-    raw_html = re.sub(r'<head>.*?</head>', '', raw_html, flags=re.DOTALL | re.IGNORECASE)
-    raw_html = re.sub(r'<script.*?>.*?</script>', '', raw_html, flags=re.DOTALL | re.IGNORECASE)
-    raw_html = re.sub(r'<style.*?>.*?</style>', '', raw_html, flags=re.DOTALL | re.IGNORECASE)
-    
-    # Remove layout elements (tables, divs, spans) but preserve structural elements (p, br, h1-h6, a)
-    # Strip attributes except href from tags
-    def clean_tag(match):
-        tag_content = match.group(0)
-        tag_name = match.group(1).lower()
-        if tag_name == 'a':
-            # Preserve href
-            href_match = re.search(r'href=["\']([^"\']+)["\']', tag_content, re.IGNORECASE)
-            if href_match:
-                return f'<a href="{href_match.group(1)}" target="_blank" rel="noopener noreferrer">'
-            return '<a>'
-        elif tag_name in ['p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'strong', 'em', 'b', 'i']:
-            return f'<{tag_name}>'
-        elif tag_name in ['/p', '/a', '/h1', '/h2', '/h3', '/h4', '/h5', '/h6', '/ul', '/ol', '/li', '/strong', '/em', '/b', '/i']:
-            return f'<{tag_name}>'
-        return '' # Strip everything else (divs, tables, etc.)
-        
-    cleaned = re.sub(r'<(/?[a-zA-Z0-9]+)(?:\s+[^>]*?)?>', clean_tag, raw_html)
-    
-    # Normalize extra line breaks
-    cleaned = re.sub(r'(?:<br>\s*){3,}', '<br><br>', cleaned)
-    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
-    return cleaned
 
 def clean_title(title, source_name):
     """Clean trailing source tags from headlines."""
@@ -305,161 +374,6 @@ def parse_rss_xml(xml_bytes, source_name, max_items, max_days_old=7):
         print(f"  Error parsing XML for {source_name}: {e}")
     return articles
 
-def fetch_local_emails(env_vars, newsletter_configs, max_days_old=7):
-    """Connect to IMAP and retrieve matching newsletters locally and securely."""
-    imap_server = env_vars.get("EMAIL_IMAP_SERVER")
-    email_addr = env_vars.get("EMAIL_ADDRESS")
-    email_pwd = env_vars.get("EMAIL_APP_PASSWORD")
-    folder = env_vars.get("EMAIL_FOLDER", "INBOX")
-    
-    if not (imap_server and email_addr and email_pwd):
-        print("  Email integration credentials not configured in .env. Skipping email fetch.")
-        return []
-        
-    articles = []
-    cutoff_date = datetime.now(timezone.utc) - timedelta(days=max_days_old)
-    
-    try:
-        print(f"Connecting to IMAP mail server {imap_server}...")
-        mail = imaplib.IMAP4_SSL(imap_server)
-        mail.login(email_addr, email_pwd)
-        
-        # Select folder
-        status, _ = mail.select(folder)
-        if status != 'OK':
-            print(f"  Error: Could not select folder '{folder}'")
-            return []
-            
-        # Search criteria: emails in the last 7 days
-        since_date = cutoff_date.strftime("%d-%b-%Y")
-        search_crit = f'(SINCE {since_date})'
-        status, data = mail.search(None, search_crit)
-        
-        if status != 'OK' or not data[0]:
-            print("  No recent emails found in folder.")
-            mail.logout()
-            return []
-            
-        mail_ids = data[0].split()
-        print(f"  Scanning {len(mail_ids)} recent emails for newsletters...")
-        
-        # Scan in reverse order (newest first)
-        for mid in reversed(mail_ids):
-            status, msg_data = mail.fetch(mid, '(RFC822)')
-            if status != 'OK':
-                continue
-                
-            raw_email = msg_data[0][1]
-            msg = email.message_from_bytes(raw_email)
-            
-            # Extract headers
-            from_header = msg.get("From", "")
-            subject_header = msg.get("Subject", "")
-            date_header = msg.get("Date", "")
-            
-            # Decode headers safely
-            def decode_safely(header_val):
-                if not header_val:
-                    return ""
-                decoded = decode_header(header_val)
-                parts = []
-                for val, charset in decoded:
-                    if isinstance(val, bytes):
-                        parts.append(val.decode(charset or 'utf-8', errors='ignore'))
-                    else:
-                        parts.append(str(val))
-                return "".join(parts)
-                
-            sender = decode_safely(from_header)
-            subject = decode_safely(subject_header)
-            email_date = parse_rfc822_date(date_header)
-            
-            if email_date and email_date < cutoff_date:
-                continue # Re-confirm date check
-                
-            # Check if this email matches any of our configured newsletter senders
-            matched_config = None
-            for config in newsletter_configs:
-                target_sender = config["sender"].lower()
-                target_subject = config.get("subject_matches", "").lower()
-                
-                if target_sender in sender.lower():
-                    if not target_subject or target_subject in subject.lower():
-                        matched_config = config
-                        break
-                        
-            if not matched_config:
-                continue
-                
-            # Parse body
-            body_html = ""
-            body_text = ""
-            
-            if msg.is_multipart():
-                for part in msg.walk():
-                    content_type = part.get_content_type()
-                    content_disp = str(part.get("Content-Disposition"))
-                    
-                    if "attachment" in content_disp:
-                        continue
-                        
-                    try:
-                        payload = part.get_payload(decode=True)
-                        charset = part.get_content_charset() or 'utf-8'
-                        decoded_payload = payload.decode(charset, errors='ignore')
-                        
-                        if content_type == "text/html":
-                            body_html = decoded_payload
-                        elif content_type == "text/plain":
-                            body_text = decoded_payload
-                    except Exception:
-                        pass
-            else:
-                try:
-                    payload = msg.get_payload(decode=True)
-                    charset = msg.get_content_charset() or 'utf-8'
-                    decoded_payload = payload.decode(charset, errors='ignore')
-                    if msg.get_content_type() == "text/html":
-                        body_html = decoded_payload
-                    else:
-                        body_text = decoded_payload
-                except Exception:
-                    pass
-            
-            # Format content: prefer clean HTML layout, fallback to text
-            if body_html:
-                content_html = clean_email_html(body_html)
-            else:
-                # Format plain text with linebreaks
-                content_html = "<p>" + html.escape(body_text).replace("\n\n", "</p><p>").replace("\n", "<br>") + "</p>"
-                
-            # Truncate content preview for the main listing
-            snippet = clean_html(body_html or body_text)
-            snippet = snippet[:220] + "..." if len(snippet) > 220 else snippet
-            
-            # Unique ID based on subject & date
-            article_id = hashlib.md5((subject + str(email_date)).encode('utf-8')).hexdigest()
-            
-            articles.append({
-                "id": article_id,
-                "title": subject,
-                "link": "#", # Local email, no external link
-                "description": snippet,
-                "content_body": content_html, # Contains cleaned email body
-                "datetime": email_date,
-                "relative_time": get_relative_time(email_date),
-                "source": matched_config["feed_name"],
-                "is_email": True
-            })
-            print(f"  [Email] Loaded newsletter: '{subject}' from {matched_config['feed_name']}")
-            
-        mail.close()
-        mail.logout()
-    except Exception as e:
-        print(f"  IMAP email fetch error: {e}. Falling back to public URL feeds.")
-        
-    return articles
-
 def fetch_and_process_topic(topic_name, topic_config, default_feed_cap, max_days_old, safety_ceiling):
     """Concurrently download feeds for a topic, processing Basis vs Auxiliary news.
 
@@ -551,20 +465,9 @@ def render_auxiliary_html(items):
     html_out += '<ul class="aux-list">'
     
     for art in items:
-        details_html = ""
         link_target = f'href="{art["link"]}" target="_blank" rel="noopener noreferrer"'
         paywall_tag = ' <span class="paywall-label">• 🔒 Paywall</span>' if art.get("paywall") else ''
-        
-        if art.get("is_email"):
-            link_target = 'href="#" onclick="return false;" style="cursor:default;"'
-            details_html = f"""
-            <details style="margin-top: 0.5rem; font-family: Georgia; font-size: 0.95rem;">
-              <summary style="cursor:pointer; font-family: var(--font-ui); font-size: 0.75rem; color: var(--accent-crimson); font-weight:700; text-transform:uppercase;">Read Newsletter Inline</summary>
-              <div style="margin-top: 0.75rem; padding: 1rem; border-top: 1px dotted var(--border-color); background: rgba(0,0,0,0.02); overflow-x: auto; max-height: 500px;">
-                {art["content_body"]}
-              </div>
-            </details>"""
-            
+
         html_out += f"""
         <li class="aux-item" data-article-id="{art["id"]}">
           <div class="aux-meta-row">
@@ -579,24 +482,31 @@ def render_auxiliary_html(items):
             <a {link_target}>{art["title"]}</a>
           </div>
           <p class="aux-snippet">{art["description"]}</p>
-          {details_html}
         </li>"""
         
     html_out += '</ul>'
     return html_out
 
-def compile_digest(silent=False):
+def compile_digest(silent=False, mode="local", config_source=None, out_path=None):
+    """Compile the briefing.
+
+    mode="local"  -> full interactive page with the settings drawer, written to a
+                     single HTML file (digest.html by default).
+    mode="hosted" -> read+triage page (no settings drawer / no /save calls) plus PWA
+                     assets (manifest.json, sw.js, icon.svg), written into an output
+                     directory ready to deploy to a static host.
+
+    config_source is a local path or an http(s) URL; out_path is a file for local
+    mode or an output directory for hosted mode."""
     if not silent:
         print("Initializing news-bot clean rebuild...")
-    
-    # 1. Load config
-    if not os.path.exists(CONFIG_PATH):
-        print(f"Error: Config not found at {CONFIG_PATH}.")
+
+    # 1. Load config (local path or remote URL)
+    config_raw_str = load_config_source(config_source)
+    if config_raw_str is None:
+        print(f"Error: Could not load config from {config_source or CONFIG_PATH}.")
         return False
-        
-    with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
-        config_raw_str = f.read()
-        config = json.loads(config_raw_str)
+    config = json.loads(config_raw_str)
         
     # Default number of stories pulled from a single source per refresh. This is a
     # per-feed fallback (used when a feed omits its own "max_items"), not a per-topic
@@ -608,46 +518,40 @@ def compile_digest(silent=False):
     # Tunable for power users via "max_total_per_topic" in config.json.
     safety_ceiling = config.get("max_total_per_topic", 60)
     
-    # 2. Check local environment credentials
-    env_vars = load_env(ENV_PATH)
-    
-    # 3. Pull Email Newsletters (Secure IMAP)
-    email_articles = []
+    # 2. Newsletters as RSS feeds (the "Editorials & Newsletters" section).
+    #    Each configured newsletter is pulled purely from its RSS feed URL.
     newsletter_configs = config.get("email_newsletters", [])
-    if newsletter_configs:
-        email_articles = fetch_local_emails(env_vars, newsletter_configs, max_days_old)
-        
-    # 4. For newsletters that failed to load via email, fetch public fallbacks
-    loaded_newsletter_sources = {a["source"] for a in email_articles}
-    fallback_newsletter_tasks = []
-    
-    for nc in newsletter_configs:
-        if nc["feed_name"] not in loaded_newsletter_sources and nc.get("fallback_url"):
-            if not silent:
-                print(f"  Queueing public fallback feed for newsletter: {nc['feed_name']}...")
-            fallback_newsletter_tasks.append({
-                "name": nc["feed_name"],
-                "url": nc["fallback_url"]
-            })
-            
-    fallback_newsletter_articles = []
-    if fallback_newsletter_tasks:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=len(fallback_newsletter_tasks)) as executor:
+    newsletter_tasks = [
+        {"name": nc["feed_name"], "url": nc["fallback_url"]}
+        for nc in newsletter_configs
+        if nc.get("fallback_url")
+    ]
+
+    all_newsletters = []
+    if newsletter_tasks:
+        if not silent:
+            print(f"Queueing {len(newsletter_tasks)} newsletter RSS feed(s)...")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(newsletter_tasks)) as executor:
             futures = {
-                executor.submit(fetch_feed_xml, t["url"]): t for t in fallback_newsletter_tasks
+                executor.submit(fetch_feed_xml, t["url"]): t for t in newsletter_tasks
             }
             for future in concurrent.futures.as_completed(futures):
                 task = futures[future]
                 try:
                     xml_data = future.result()
                     items = parse_rss_xml(xml_data, task["name"], default_feed_cap, max_days_old)
-                    fallback_newsletter_articles.extend(items)
+                    all_newsletters.extend(items)
                 except Exception as e:
-                    print(f"  Error fetching public fallback {task['name']}: {e}")
+                    print(f"  Error fetching newsletter feed {task['name']}: {e}")
 
-    # Combine loaded email articles & fallback RSS newsletters
-    all_newsletters = email_articles + fallback_newsletter_articles
-    all_newsletters.sort(key=lambda x: x["datetime"] if x["datetime"] else datetime.min.replace(tzinfo=timezone.utc), reverse=True)
+    # De-duplicate by link and order newest-first (undated items are already dropped).
+    seen_nl = set()
+    deduped_newsletters = []
+    for a in sorted(all_newsletters, key=lambda x: x["datetime"], reverse=True):
+        if a["link"] not in seen_nl:
+            seen_nl.add(a["link"])
+            deduped_newsletters.append(a)
+    all_newsletters = deduped_newsletters
 
     # 5. Fetch Topic Feeds (Parallel Execution)
     topics_html_output = []
@@ -748,11 +652,35 @@ def compile_digest(silent=False):
     output_content = output_content.replace("{TOPICS_HTML}", combined_topics_html)
     output_content = output_content.replace("{CONFIG_JSON}", config_raw_str)
 
-    with open(OUTPUT_PATH, 'w', encoding='utf-8') as f:
-        f.write(output_content)
+    if mode == "hosted":
+        # Hosted/PWA build: inject the PWA tags and strip the settings drawer (a static
+        # host has no /save server; authoring stays in the local build).
+        output_content = output_content.replace("{PWA_HEAD}", PWA_HEAD_TAGS)
+        output_content = output_content.replace("{PWA_FOOT}", PWA_FOOT_TAGS)
+        output_content = re.sub(
+            r"<!--HOSTED_STRIP_START-->.*?<!--HOSTED_STRIP_END-->",
+            "", output_content, flags=re.DOTALL)
 
-    if not silent:
-        print(f"Digest successfully updated: {OUTPUT_PATH}")
+        out_dir = out_path or os.path.join(PROJECT_DIR, "dist")
+        os.makedirs(out_dir, exist_ok=True)
+        with open(os.path.join(out_dir, "index.html"), 'w', encoding='utf-8') as f:
+            f.write(output_content)
+        with open(os.path.join(out_dir, "manifest.json"), 'w', encoding='utf-8') as f:
+            f.write(PWA_MANIFEST_JSON)
+        with open(os.path.join(out_dir, "sw.js"), 'w', encoding='utf-8') as f:
+            f.write(PWA_SERVICE_WORKER)
+        with open(os.path.join(out_dir, "icon.svg"), 'w', encoding='utf-8') as f:
+            f.write(PWA_ICON_SVG)
+        if not silent:
+            print(f"Hosted digest written to: {out_dir}")
+    else:
+        # Local build: strip the (unused) PWA placeholders and write a single file.
+        output_content = output_content.replace("{PWA_HEAD}", "").replace("{PWA_FOOT}", "")
+        target = out_path or OUTPUT_PATH
+        with open(target, 'w', encoding='utf-8') as f:
+            f.write(output_content)
+        if not silent:
+            print(f"Digest successfully updated: {target}")
     return True
 
 class NewsBotHTTPHandler(http.server.SimpleHTTPRequestHandler):
@@ -837,15 +765,34 @@ class NewsBotHTTPHandler(http.server.SimpleHTTPRequestHandler):
                           self.log_date_time_string(),
                           format%args))
 
+def get_cli_value(flag):
+    """Read a CLI value passed as '--flag value' or '--flag=value'."""
+    for i, arg in enumerate(sys.argv):
+        if arg == flag and i + 1 < len(sys.argv):
+            return sys.argv[i + 1]
+        if arg.startswith(flag + "="):
+            return arg.split("=", 1)[1]
+    return None
+
 def main():
     serve_mode = "--serve" in sys.argv
     silent_mode = "--silent" in sys.argv
-    
-    # 1. Compile digest first
-    success = compile_digest(silent=silent_mode or serve_mode)
+    mode = get_cli_value("--mode") or "local"
+    config_source = get_cli_value("--config")
+    out_path = get_cli_value("--out")
+
+    # Hosted builds are headless (run by the scheduler): compile and exit.
+    if mode == "hosted":
+        success = compile_digest(silent=silent_mode, mode="hosted",
+                                 config_source=config_source, out_path=out_path)
+        sys.exit(0 if success else 1)
+
+    # 1. Compile digest first (local mode)
+    success = compile_digest(silent=silent_mode or serve_mode,
+                             config_source=config_source, out_path=out_path)
     if not success:
         sys.exit(1)
-        
+
     if serve_mode:
         port = 8999
         class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):

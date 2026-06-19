@@ -1,6 +1,9 @@
 # Generated news feed HTML output
 digest.html
 
+# Hosted/PWA build output (per-user deploy folders)
+dist/
+
 # Local environment credentials (gitignored for security)
 .env
 

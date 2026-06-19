@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>news-bot // daily briefing</title>
-  
+{PWA_HEAD}
   <style>
     /* Newspaper Editorial Design System (Crimson & Charcoal) */
     :root {
@@ -562,7 +562,8 @@
       <button class="btn active" id="btn-toggle-read" onclick="toggleHideRead()">Show Read</button>
     </div>
 
-    <!-- Briefing Settings Drawer -->
+    <!--HOSTED_STRIP_START-->
+    <!-- Briefing Settings Drawer (removed in hosted/PWA builds; authoring stays local) -->
     <details class="settings-drawer">
       <summary class="settings-summary">⚙️ Briefing Settings</summary>
       <div class="settings-content">
@@ -664,6 +665,7 @@
         </div>
       </div>
     </details>
+    <!--HOSTED_STRIP_END-->
 
     <main id="digest-main">
       <!-- Dynamic news topics injected here -->
@@ -808,8 +810,11 @@
 
     // Settings Panel Controls
     function initSettings() {
+      // The settings drawer is stripped from hosted/PWA builds; bail out if absent.
+      const maxDaysInput = document.getElementById('global-max-days');
+      if (!maxDaysInput) return;
       // Populate global settings inputs from active configObj
-      document.getElementById('global-max-days').value = configObj.max_days_old || 7;
+      maxDaysInput.value = configObj.max_days_old || 7;
       document.getElementById('global-max-items').value = configObj.max_items_per_feed || 6;
       
       renderTopicsEditor();
@@ -1232,5 +1237,6 @@
       window.location.reload();
     }
   </script>
+{PWA_FOOT}
 </body>
 </html>
