@@ -12,6 +12,7 @@ import os
 import shutil
 import tempfile
 import unittest
+import urllib.parse
 from datetime import datetime, timezone, timedelta
 from email.utils import format_datetime
 
@@ -367,6 +368,78 @@ class ConfigSourceTests(unittest.TestCase):
 
     def test_missing_path_returns_none(self):
         self.assertIsNone(generate.load_config_source("/no/such/config-xyz.json"))
+
+
+class RecencyParsingTests(unittest.TestCase):
+    def test_units(self):
+        self.assertAlmostEqual(generate.parse_recency_to_days("1d", 7), 1.0)
+        self.assertAlmostEqual(generate.parse_recency_to_days("12h", 7), 0.5)
+        self.assertAlmostEqual(generate.parse_recency_to_days("2w", 7), 14.0)
+        self.assertAlmostEqual(generate.parse_recency_to_days("30m", 7), 30 / 1440)
+        self.assertAlmostEqual(generate.parse_recency_to_days("1.5d", 7), 1.5)
+        self.assertAlmostEqual(generate.parse_recency_to_days("3", 7), 3.0)  # bare = days
+
+    def test_whitespace_and_case(self):
+        self.assertAlmostEqual(generate.parse_recency_to_days(" 1D ", 7), 1.0)
+        self.assertAlmostEqual(generate.parse_recency_to_days("2 D", 7), 2.0)
+
+    def test_numeric_input(self):
+        self.assertEqual(generate.parse_recency_to_days(2, 7), 2.0)
+        self.assertEqual(generate.parse_recency_to_days(2.5, 7), 2.5)
+
+    def test_fallbacks_to_default(self):
+        for bad in (None, "", "garbage", "0d", "-5", "0", 0, -3, True, False):
+            self.assertEqual(generate.parse_recency_to_days(bad, 7), 7,
+                             f"{bad!r} should fall back to the default window")
+
+
+class RecencyOverrideTests(unittest.TestCase):
+    """Per-feed `recency` should tighten the cutoff below the global window."""
+
+    def setUp(self):
+        self.now = datetime.now(timezone.utc)
+        self._orig = generate.fetch_feed_xml
+        generate.fetch_feed_xml = lambda url: _rss([
+            ("Old", url + "#old", _rfc822(self.now - timedelta(days=2))),
+            ("Fresh", url + "#fresh", _rfc822(self.now - timedelta(hours=2))),
+        ])
+
+    def tearDown(self):
+        generate.fetch_feed_xml = self._orig
+
+    def test_per_feed_recency_tightens_window(self):
+        cfg = {"feeds": [{"name": "Wire", "url": "https://e.com/f", "max_items": 10, "recency": "1d"}]}
+        res = generate.fetch_and_process_topic("T", cfg, default_feed_cap=6, max_days_old=7, safety_ceiling=1000)
+        self.assertEqual([a["title"] for a in res["auxiliary"]], ["Fresh"],
+                         "a 1d recency must drop the 2-day-old item even though the global window is 7d")
+
+    def test_without_recency_uses_global_window(self):
+        cfg = {"feeds": [{"name": "Wire", "url": "https://e.com/f", "max_items": 10}]}
+        res = generate.fetch_and_process_topic("T", cfg, default_feed_cap=6, max_days_old=7, safety_ceiling=1000)
+        self.assertEqual(sorted(a["title"] for a in res["auxiliary"]), ["Fresh", "Old"],
+                         "with no per-feed recency, the global 7d window keeps both items")
+
+
+class GNewsRecencyUrlTests(unittest.TestCase):
+    def test_injects_when_operator_for_google_news(self):
+        url = "https://news.google.com/rss/search?q=site:reuters.com&hl=en-US"
+        out = generate.apply_gnews_recency(url, "1d")
+        q = urllib.parse.parse_qs(urllib.parse.urlparse(out).query)["q"][0]
+        self.assertIn("when:1d", q)  # decoded query carries the operator
+
+    def test_noop_for_non_google_news(self):
+        url = "https://www.theguardian.com/world/rss"
+        self.assertEqual(generate.apply_gnews_recency(url, "1d"), url)
+
+    def test_noop_when_recency_absent(self):
+        url = "https://news.google.com/rss/search?q=foo"
+        self.assertEqual(generate.apply_gnews_recency(url, None), url)
+
+    def test_idempotent(self):
+        url = "https://news.google.com/rss/search?q=site:reuters.com&hl=en-US"
+        once = generate.apply_gnews_recency(url, "1d")
+        twice = generate.apply_gnews_recency(once, "1d")
+        self.assertEqual(once, twice)
 
 
 if __name__ == "__main__":

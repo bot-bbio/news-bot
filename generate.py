@@ -261,6 +261,33 @@ def parse_rfc822_date(date_str):
             continue
     return None
 
+def parse_recency_to_days(recency, default_days):
+    """Convert a per-feed recency window into a float number of days.
+
+    Accepts shorthand like '1d', '12h', '30m', '2w', or a bare number (interpreted
+    as days). Lets a single noisy feed use a tighter window than the global
+    ``max_days_old`` (e.g. capping wire feeds to the last 24h). Falls back to
+    ``default_days`` when the value is missing, non-positive, or unparseable."""
+    if recency is None:
+        return default_days
+    if isinstance(recency, bool):  # guard: bools are ints in Python
+        return default_days
+    if isinstance(recency, (int, float)):
+        return float(recency) if recency > 0 else default_days
+
+    s = str(recency).strip().lower()
+    if not s:
+        return default_days
+    match = re.fullmatch(r"(\d+(?:\.\d+)?)\s*([wdhm]?)", s)
+    if not match:
+        print(f"  Warning: unrecognized recency '{recency}', using default window.")
+        return default_days
+    value = float(match.group(1))
+    unit = match.group(2) or "d"
+    per_unit_days = {"w": 7.0, "d": 1.0, "h": 1.0 / 24.0, "m": 1.0 / 1440.0}[unit]
+    days = value * per_unit_days
+    return days if days > 0 else default_days
+
 def get_relative_time(dt):
     if not dt:
         return "Unknown date"
@@ -419,7 +446,8 @@ def fetch_and_process_topic(topic_name, topic_config, default_feed_cap, max_days
         basis_conf = topic_config["basis"]
         print(f"  Fetching Basis for '{topic_name}': {basis_conf['name']}...")
         xml_data = fetch_feed_xml(apply_gnews_recency(basis_conf["url"], basis_conf.get("recency")))
-        basis_items = parse_rss_xml(xml_data, basis_conf["name"], max_items=2, max_days_old=max_days_old)
+        basis_days = parse_recency_to_days(basis_conf.get("recency"), max_days_old)
+        basis_items = parse_rss_xml(xml_data, basis_conf["name"], max_items=2, max_days_old=basis_days)
         if basis_items:
             # Pin the single latest article as the basis
             topic_data["basis"] = basis_items[0]
@@ -439,7 +467,9 @@ def fetch_and_process_topic(topic_name, topic_config, default_feed_cap, max_days
                     # Feed-specific cap to prevent a single source dominating the
                     # topic; falls back to the global default when unspecified.
                     feed_max = int(feed.get("max_items", default_feed_cap))
-                    items = parse_rss_xml(xml_data, feed["name"], feed_max, max_days_old)
+                    # Per-feed recency window overrides the global cutoff when set.
+                    feed_days = parse_recency_to_days(feed.get("recency"), max_days_old)
+                    items = parse_rss_xml(xml_data, feed["name"], feed_max, feed_days)
                     topic_data["auxiliary"].extend(items)
                 except Exception as e:
                     print(f"  Error fetching {feed['name']} auxiliary: {e}")

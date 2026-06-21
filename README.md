@@ -22,6 +22,7 @@ Open [config.json](config.json) to edit your topics and feeds.
 - **`email_newsletters`**: RSS sources for the *Editorials & Newsletters* section. Each entry's `feed_name` is the display label and `fallback_url` is the RSS feed to pull. *(The legacy `sender`/`subject_matches` fields are ignored.)*
 - **`max_days_old`**: Hard recency cutoff — auxiliary articles older than this (default 7 days), and any article without a parseable date, are dropped.
 - **`max_items_per_feed`**: Default number of stories pulled from a single source per refresh (default 6). A *per-feed* fallback used when a feed omits its own `max_items` — **not** a per-topic cap. Topics have no fixed story limit; they are bounded only by recency.
+- **Per-feed `recency`** *(optional)*: tighten a single feed's window below the global `max_days_old`, e.g. `"recency": "1d"` (also accepts `12h`, `30m`, `2w`, or a bare number of days). Ideal for noisy wire feeds you want capped to the last day while slower long-form feeds keep the 7-day window. It's enforced as a hard date cutoff for every feed type; for Google News feeds it *additionally* injects the `when:` operator so Google returns fresh, recency-ordered results.
 - **`max_total_per_topic`** *(optional, advanced)*: A hidden per-topic safety ceiling (default 60) that only trims a topic if a malfunctioning feed floods it. Not shown in the settings UI; edit it directly in `config.json`.
 
 ### 2. Run Locally (authoring & preview)
