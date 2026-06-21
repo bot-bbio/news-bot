@@ -550,7 +550,7 @@
       <div class="masthead-title">news-bot</div>
       <div class="masthead-subtitle">your clean daily briefing digest</div>
       <div class="meta-line">
-        <span class="timestamp" id="generation-time">Compiled: {GENERATED_TIME}</span>
+        <span class="timestamp" id="generation-time" data-iso="{GENERATED_ISO}">Compiled: {GENERATED_TIME}</span>
         <span>Strict 7-Day Recency Filter</span>
       </div>
     </header>
@@ -683,8 +683,60 @@
       applyTopicOrder();
       syncReadButton();
       applyVisibility();
+      renderTimes();
       initSettings();
     });
+
+    // Re-render ages whenever the (possibly cached) page is brought back to the
+    // foreground — e.g. reopening the installed PWA — so a story's age and the
+    // "Compiled" stamp always reflect the viewer's current local time.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') renderTimes();
+    });
+
+    // --- Viewer-local time rendering -------------------------------------------
+    // Article ages and the "Compiled" stamp are embedded as absolute UTC ISO-8601
+    // timestamps and rendered against the *viewer's* clock here. This fixes two
+    // things a server-baked string cannot: (1) the build runs on a UTC CI runner,
+    // so a baked local string would be in the wrong timezone; (2) the static page
+    // is cached and only rebuilt twice a day, so a baked "2h ago" would otherwise
+    // grow stale — recomputing on load/foreground keeps it honest.
+    function formatRelative(thenMs, nowMs) {
+      const secs = Math.floor((nowMs - thenMs) / 1000);
+      if (secs < 60) return 'Just now';
+      const mins = Math.floor(secs / 60);
+      if (mins < 60) return mins + 'm ago';
+      const hours = Math.floor(mins / 60);
+      if (hours < 24) return hours + 'h ago';
+      const days = Math.floor(hours / 24);
+      if (days === 1) return 'Yesterday';
+      return days + 'd ago';
+    }
+
+    function renderTimes() {
+      const now = Date.now();
+
+      document.querySelectorAll('time.rel-time[datetime]').forEach(el => {
+        const iso = el.getAttribute('datetime');
+        if (!iso) return;
+        const t = Date.parse(iso);
+        if (isNaN(t)) return;
+        el.textContent = formatRelative(t, now);
+        // Hovering shows the exact publish time in the viewer's locale.
+        el.title = new Date(t).toLocaleString();
+      });
+
+      const gen = document.getElementById('generation-time');
+      if (gen && gen.dataset.iso) {
+        const t = Date.parse(gen.dataset.iso);
+        if (!isNaN(t)) {
+          gen.textContent = 'Compiled: ' + new Date(t).toLocaleString([], {
+            month: 'long', day: 'numeric', year: 'numeric',
+            hour: 'numeric', minute: '2-digit'
+          });
+        }
+      }
+    }
 
     // --- Centralized visibility -------------------------------------------------
     // Single source of truth for whether each story is shown, combining the
@@ -1002,7 +1054,10 @@
         "feeds": [
           {
             "name": `Google News (${name})`,
-            "url": `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`
+            "url": `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`,
+            // Constrain this Google News search to the last day so the relevance-ranked
+            // feed surfaces the freshest stories (remove for broad/low-volume topics).
+            "recency": "1d"
           }
         ]
       };

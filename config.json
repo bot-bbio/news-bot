@@ -1,6 +1,6 @@
 {
   "topics": {
-    "General News": {
+    "General": {
       "enabled": true,
       "feeds": [
         {
@@ -38,16 +38,18 @@
         {
           "name": "Associated Press",
           "url": "https://news.google.com/rss/search?q=site:apnews.com&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 4
+          "max_items": 4,
+          "recency": "1d"
         },
         {
           "name": "Reuters (Top News)",
           "url": "https://news.google.com/rss/search?q=site:reuters.com&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 4
+          "max_items": 4,
+          "recency": "1d"
         }
       ]
     },
-    "Elections & Capitol Hill": {
+    "Politics": {
       "enabled": true,
       "feeds": [
         {
@@ -73,27 +75,31 @@
         {
           "name": "Capitol Hill & Congress Wire",
           "url": "https://news.google.com/rss/search?q=site:politico.com/congress+OR+site:rollcall.com+OR+site:thehill.com&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 4
+          "max_items": 4,
+          "recency": "1d"
         }
       ]
     },
-    "Markets & Economy": {
+    "Economy": {
       "enabled": true,
       "feeds": [
         {
           "name": "Bloomberg",
           "url": "https://news.google.com/rss/search?q=site:bloomberg.com/opinion+OR+site:bloomberg.com/news&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 4
+          "max_items": 4,
+          "recency": "1d"
         },
         {
           "name": "Financial Times",
           "url": "https://news.google.com/rss/search?q=site:ft.com&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 4
+          "max_items": 4,
+          "recency": "1d"
         },
         {
           "name": "Wall Street Journal",
           "url": "https://news.google.com/rss/search?q=site:wsj.com&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 4
+          "max_items": 4,
+          "recency": "1d"
         },
         {
           "name": "The Economist",
@@ -111,11 +117,12 @@
         {
           "name": "Reuters",
           "url": "https://news.google.com/rss/search?q=site:reuters.com/markets&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 4
+          "max_items": 4,
+          "recency": "1d"
         }
       ]
     },
-    "Specialized Market Wires": {
+    "Market Wires": {
       "enabled": true,
       "feeds": [
         {
@@ -137,16 +144,18 @@
         {
           "name": "FT Markets",
           "url": "https://news.google.com/rss/search?q=site:ft.com/markets&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 4
+          "max_items": 4,
+          "recency": "1d"
         },
         {
           "name": "Reuters Business",
           "url": "https://news.google.com/rss/search?q=site:reuters.com/business&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 4
+          "max_items": 4,
+          "recency": "1d"
         }
       ]
     },
-    "Private Equity & Law Firms": {
+    "Law Equity": {
       "enabled": true,
       "feeds": [
         {
@@ -183,28 +192,32 @@
         }
       ]
     },
-    "World News & Geopolitics": {
+    "Geopolitics": {
       "enabled": true,
       "feeds": [
         {
           "name": "Associated Press",
           "url": "https://news.google.com/rss/search?q=site:apnews.com&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 4
+          "max_items": 4,
+          "recency": "1d"
         },
         {
           "name": "BBC News",
           "url": "https://news.google.com/rss/search?q=site:bbc.com/news+OR+site:bbc.co.uk/news&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 4
+          "max_items": 4,
+          "recency": "1d"
         },
         {
           "name": "Al Jazeera",
           "url": "https://news.google.com/rss/search?q=site:aljazeera.com&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 4
+          "max_items": 4,
+          "recency": "1d"
         },
         {
           "name": "Reuters (World)",
           "url": "https://news.google.com/rss/search?q=site:reuters.com/world&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 4
+          "max_items": 4,
+          "recency": "1d"
         },
         {
           "name": "Foreign Policy",
@@ -221,7 +234,7 @@
         }
       ]
     },
-    "Regional Deep Dives": {
+    "Regional": {
       "enabled": true,
       "feeds": [
         {
@@ -264,7 +277,7 @@
         }
       ]
     },
-    "Ukraine War": {
+    "Ukraine": {
       "enabled": true,
       "basis": {
         "name": "ISW Russian Offensive Assessment",
@@ -274,12 +287,14 @@
         {
           "name": "Reuters (Ukraine)",
           "url": "https://news.google.com/rss/search?q=site:reuters.com+Ukraine&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 4
+          "max_items": 4,
+          "recency": "1d"
         },
         {
           "name": "Bloomberg (Ukraine)",
           "url": "https://news.google.com/rss/search?q=site:bloomberg.com+Ukraine&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 4
+          "max_items": 4,
+          "recency": "1d"
         },
         {
           "name": "Kyiv Independent",
@@ -293,7 +308,7 @@
         }
       ]
     },
-    "Iran war": {
+    "Iran": {
       "enabled": true,
       "basis": {
         "name": "ISW Iran Update",
@@ -303,16 +318,19 @@
         {
           "name": "Reuters (Iran)",
           "url": "https://news.google.com/rss/search?q=site:reuters.com+Iran&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 4
+          "max_items": 4,
+          "recency": "1d"
         },
         {
           "name": "Al Jazeera (Iran)",
           "url": "https://news.google.com/rss/search?q=site:aljazeera.com+Iran&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 4
+          "max_items": 4,
+          "recency": "1d"
         },
         {
           "name": "Times of Israel",
-          "url": "https://www.timesofisrael.com/feed/"
+          "url": "https://www.timesofisrael.com/feed/",
+          "max_items": 4
         },
         {
           "name": "Al-Monitor (Iran)",
@@ -321,7 +339,7 @@
         }
       ]
     },
-    "Military & Strategic Studies": {
+    "Military": {
       "enabled": true,
       "feeds": [
         {
@@ -360,7 +378,7 @@
         }
       ]
     },
-    "Court News": {
+    "Courts": {
       "enabled": true,
       "feeds": [
         {
@@ -435,13 +453,14 @@
         }
       ]
     },
-    "Artificial Intelligence": {
+    "AI": {
       "enabled": true,
       "feeds": [
         {
           "name": "Google News (AI)",
           "url": "https://news.google.com/rss/search?q=%22artificial+intelligence%22&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 3,
+          "recency": "1d"
         },
         {
           "name": "MIT Technology Review (AI)",
@@ -469,13 +488,14 @@
         }
       ]
     },
-    "Data centers & Cloud": {
+    "Data centers": {
       "enabled": true,
       "feeds": [
         {
           "name": "Google News (Data Centers & Cloud)",
           "url": "https://news.google.com/rss/search?q=%22Data+centers%22+OR+Cloud&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 3,
+          "recency": "1d"
         },
         {
           "name": "Data Center Dynamics",
@@ -510,7 +530,8 @@
         {
           "name": "Google News (Cyber security)",
           "url": "https://news.google.com/rss/search?q=%22rubrik%22%20OR%20%22Cyber%20security%22%20OR%20%22Cyber%20attack%22&hl=en-US&gl=US&ceid=US:en",
-          "max_items": 3
+          "max_items": 3,
+          "recency": "1d"
         },
         {
           "name": "Krebs on Security",
@@ -538,7 +559,7 @@
         }
       ]
     },
-    "Progress & Science": {
+    "Science": {
       "enabled": true,
       "feeds": [
         {
@@ -568,7 +589,7 @@
         }
       ]
     },
-    "Long Form & Deep Reads": {
+    "Long Form": {
       "enabled": true,
       "feeds": [
         {
@@ -640,7 +661,7 @@
         }
       ]
     },
-    "Film & Movies": {
+    "Film": {
       "enabled": true,
       "feeds": [
         {

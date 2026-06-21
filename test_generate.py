@@ -69,6 +69,59 @@ class DateParsingTests(unittest.TestCase):
         self.assertIsNone(generate.parse_rfc822_date(None))
 
 
+class GNewsRecencyTests(unittest.TestCase):
+    """The `when:` recency operator workaround for Google News relevance ranking."""
+
+    GN = "https://news.google.com/rss/search?q=site:apnews.com&hl=en-US&gl=US&ceid=US:en"
+
+    def test_injects_when_operator_into_query(self):
+        out = generate.apply_gnews_recency(self.GN, "1d")
+        from urllib.parse import urlparse, parse_qs
+        q = parse_qs(urlparse(out).query)["q"][0]
+        self.assertIn("site:apnews.com", q)
+        self.assertIn("when:1d", q)
+
+    def test_preserves_other_query_params(self):
+        from urllib.parse import urlparse, parse_qs
+        qs = parse_qs(urlparse(generate.apply_gnews_recency(self.GN, "1d")).query)
+        self.assertEqual(qs["hl"][0], "en-US")
+        self.assertEqual(qs["gl"][0], "US")
+        self.assertEqual(qs["ceid"][0], "US:en")
+
+    def test_idempotent_when_already_constrained(self):
+        once = generate.apply_gnews_recency(self.GN, "1d")
+        twice = generate.apply_gnews_recency(once, "1d")
+        self.assertEqual(once, twice)
+
+    def test_noop_for_non_gnews_url(self):
+        url = "http://feeds.bbci.co.uk/news/world/rss.xml"
+        self.assertEqual(generate.apply_gnews_recency(url, "1d"), url)
+
+    def test_noop_for_empty_recency(self):
+        self.assertEqual(generate.apply_gnews_recency(self.GN, None), self.GN)
+        self.assertEqual(generate.apply_gnews_recency(self.GN, ""), self.GN)
+
+    def test_fetch_path_applies_recency(self):
+        """A feed carrying "recency" must reach the network with when: injected;
+        a feed without it must be fetched unchanged."""
+        seen = []
+        orig = generate.fetch_feed_xml
+        generate.fetch_feed_xml = lambda url: (seen.append(url) or b"<rss><channel></channel></rss>")
+        try:
+            topic_config = {"feeds": [
+                {"name": "AP", "url": self.GN, "recency": "1d"},
+                {"name": "BBC", "url": "http://feeds.bbci.co.uk/news/world/rss.xml"},
+            ]}
+            generate.fetch_and_process_topic("T", topic_config, default_feed_cap=6,
+                                             max_days_old=7, safety_ceiling=60)
+        finally:
+            generate.fetch_feed_xml = orig
+        self.assertTrue(any("when:1d" in u or "when%3A1d" in u for u in seen),
+                        "recency feed should be fetched with when: injected")
+        self.assertTrue(any(u == "http://feeds.bbci.co.uk/news/world/rss.xml" for u in seen),
+                        "non-recency feed should be fetched unchanged")
+
+
 class RecencyFilterTests(unittest.TestCase):
     def setUp(self):
         self.now = datetime.now(timezone.utc)
@@ -246,6 +299,48 @@ class CompileDigestTests(unittest.TestCase):
         self.assertIn("serviceWorker", idx)
         # Newsletters still render (as RSS) in their own section.
         self.assertIn("Editorials & Newsletters", idx)
+
+    def test_times_are_rendered_client_side_from_absolute_timestamps(self):
+        """Times must ship as absolute UTC ISO-8601 and be rendered in the viewer's
+        timezone on load — not baked as server-local strings. This guards against the
+        two original bugs: a UTC-runner mislabeling the 'Compiled' stamp, and frozen
+        'Nh ago' ages on a cached page."""
+        out_file = os.path.join(self.tmp, "digest.html")
+        ok = generate.compile_digest(silent=True, mode="local",
+                                     config_source=self.config_path, out_path=out_file)
+        self.assertTrue(ok)
+        page = open(out_file, encoding="utf-8").read()
+
+        # Article ages ship as <time datetime="...ISO..."> with a UTC offset, so the
+        # client can recompute them against the viewer's clock.
+        self.assertIn('<time class="rel-time" datetime="', page)
+        self.assertIn("+00:00", page)  # a UTC offset is present on the stamps
+
+        # The compile stamp ships as an absolute ISO timestamp the client localizes,
+        # and the no-JS fallback is explicitly UTC-labeled (not an unlabeled local time).
+        self.assertIn('id="generation-time"', page)
+        self.assertIn('data-iso="', page)
+        self.assertIn("UTC", page)
+        self.assertNotIn("{GENERATED_ISO}", page)
+
+        # The client-side renderer is present.
+        self.assertIn("function renderTimes()", page)
+
+    def test_compile_stamp_is_utc_not_runner_local(self):
+        """The baked 'Compiled' string must be UTC-derived so it never silently shows
+        a UTC CI runner's wall clock as if it were the reader's local time."""
+        out_file = os.path.join(self.tmp, "digest.html")
+        generate.compile_digest(silent=True, mode="local",
+                                config_source=self.config_path, out_path=out_file)
+        page = open(out_file, encoding="utf-8").read()
+        import re as _re
+        m = _re.search(r'data-iso="([^"]+)"', page)
+        self.assertIsNotNone(m, "header must carry an absolute ISO compile timestamp")
+        stamp = datetime.fromisoformat(m.group(1))
+        self.assertIsNotNone(stamp.tzinfo, "compile timestamp must be timezone-aware")
+        # Within a minute of 'now' in UTC (proves it's UTC-based, not naive local).
+        drift = abs((datetime.now(timezone.utc) - stamp).total_seconds())
+        self.assertLess(drift, 120, "compile timestamp should be ~now in UTC")
 
     def test_local_mode_keeps_settings_and_writes_single_file(self):
         out_file = os.path.join(self.tmp, "digest.html")

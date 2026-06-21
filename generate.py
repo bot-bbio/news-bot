@@ -291,6 +291,29 @@ def fetch_feed_xml(url):
         print(f"  Error fetching feed {url}: {e}")
         return None
 
+def apply_gnews_recency(url, recency):
+    """Constrain a Google News *search* feed to a recency window via the `when:`
+    operator (e.g. recency="1d" -> only the last 24h).
+
+    Google News site:/keyword search RSS ranks results by *relevance*, which floats
+    older high-engagement stories to the top and can omit the freshest items
+    entirely. A tight `when:` window forces a recency-ordered result set. Empirically
+    only a 1-day window reliably flips Google into recency mode — `when:2d`/`when:7d`
+    behave like an unconstrained query — so this is most useful with recency="1d".
+
+    No-ops (returns the URL unchanged) when: recency is falsy, the URL is not a
+    Google News search, or the query already carries a `when:` operator. Idempotent."""
+    if not recency or "news.google.com/rss/search" not in url:
+        return url
+    parts = urllib.parse.urlparse(url)
+    qs = urllib.parse.parse_qs(parts.query, keep_blank_values=True)
+    q = qs.get("q", [""])[0]
+    if "when:" in q:
+        return url
+    qs["q"] = [f"{q} when:{recency}".strip()]
+    new_query = urllib.parse.urlencode(qs, doseq=True)
+    return urllib.parse.urlunparse(parts._replace(query=new_query))
+
 def parse_rss_xml(xml_bytes, source_name, max_items, max_days_old=7):
     if not xml_bytes:
         return []
@@ -395,7 +418,7 @@ def fetch_and_process_topic(topic_name, topic_config, default_feed_cap, max_days
     if "basis" in topic_config:
         basis_conf = topic_config["basis"]
         print(f"  Fetching Basis for '{topic_name}': {basis_conf['name']}...")
-        xml_data = fetch_feed_xml(basis_conf["url"])
+        xml_data = fetch_feed_xml(apply_gnews_recency(basis_conf["url"], basis_conf.get("recency")))
         basis_items = parse_rss_xml(xml_data, basis_conf["name"], max_items=2, max_days_old=max_days_old)
         if basis_items:
             # Pin the single latest article as the basis
@@ -406,7 +429,8 @@ def fetch_and_process_topic(topic_name, topic_config, default_feed_cap, max_days
     if feeds:
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(feeds)) as executor:
             future_to_feed = {
-                executor.submit(fetch_feed_xml, feed["url"]): feed for feed in feeds
+                executor.submit(fetch_feed_xml, apply_gnews_recency(feed["url"], feed.get("recency"))): feed
+                for feed in feeds
             }
             for future in concurrent.futures.as_completed(future_to_feed):
                 feed = future_to_feed[future]
@@ -440,13 +464,16 @@ def render_basis_html(basis):
     if not basis:
         return ""
     paywall_tag = ' <span class="paywall-label">• 🔒 Paywall</span>' if basis.get("paywall") else ''
+    # Emit the absolute publish instant; the page recomputes the relative age in the
+    # viewer's timezone on load (the text below is only a pre-JS fallback).
+    iso = basis["datetime"].isoformat() if basis.get("datetime") else ""
     return f"""
       <div class="basis-doc" data-article-id="{basis["id"]}">
         <span class="basis-label">Mandated Priority Basis — {basis["source"]}</span>
         <div class="basis-meta">
           <span class="meta-source">{basis["source"]}</span>
           <span class="meta-separator">•</span>
-          <span>{basis["relative_time"]}</span>
+          <time class="rel-time" datetime="{iso}">{basis["relative_time"]}</time>
           {paywall_tag}
           <span class="meta-separator">•</span>
           <button class="action-link" onclick="toggleRead('{basis["id"]}')">Mark Read</button>
@@ -467,13 +494,14 @@ def render_auxiliary_html(items):
     for art in items:
         link_target = f'href="{art["link"]}" target="_blank" rel="noopener noreferrer"'
         paywall_tag = ' <span class="paywall-label">• 🔒 Paywall</span>' if art.get("paywall") else ''
+        iso = art["datetime"].isoformat() if art.get("datetime") else ""
 
         html_out += f"""
         <li class="aux-item" data-article-id="{art["id"]}">
           <div class="aux-meta-row">
             <span class="meta-source">{art["source"]}</span>
             <span class="meta-separator">•</span>
-            <span>{art["relative_time"]}</span>
+            <time class="rel-time" datetime="{iso}">{art["relative_time"]}</time>
             {paywall_tag}
             <span class="meta-separator">•</span>
             <button class="action-link" onclick="toggleRead('{art["id"]}')">Mark Read</button>
@@ -646,9 +674,16 @@ def compile_digest(silent=False, mode="local", config_source=None, out_path=None
     with open(TEMPLATE_PATH, 'r', encoding='utf-8') as f:
         template_content = f.read()
 
-    gen_time_str = datetime.now().strftime("%B %d, %Y - %I:%M %p")
-    
+    # Capture the compile instant as an absolute UTC timestamp. The header renders
+    # this in the *viewer's* local timezone client-side (see template.html); the
+    # string below is only a no-JS fallback, so it is labeled UTC to stay honest
+    # even when the build runs on a UTC CI runner (e.g. GitHub Actions).
+    gen_dt = datetime.now(timezone.utc)
+    gen_time_str = gen_dt.strftime("%B %d, %Y - %I:%M %p UTC")
+    gen_iso = gen_dt.isoformat()
+
     output_content = template_content.replace("{GENERATED_TIME}", gen_time_str)
+    output_content = output_content.replace("{GENERATED_ISO}", gen_iso)
     output_content = output_content.replace("{TOPICS_HTML}", combined_topics_html)
     output_content = output_content.replace("{CONFIG_JSON}", config_raw_str)
 
