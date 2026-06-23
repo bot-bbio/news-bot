@@ -1,0 +1,103 @@
+name: Digest freshness monitor
+
+# Independent watchdog for the bi-hourly refresh (refresh.yml). GitHub's scheduled
+# cron can silently drop runs, so a missed deploy leaves the live digest stale with
+# no error logged anywhere. This job fetches each user's live page, reads the
+# generation timestamp embedded in the masthead (data-iso="..."), and FAILS the run
+# if the digest is older than MAX_AGE_HOURS -- turning a silent miss into a red run
+# and a GitHub "workflow failed" email.
+#
+# What it catches: dropped deploys (whenever this monitor itself still runs), failed
+# deploys, broken renders, and Cloudflare outages (an unreachable URL counts as stale).
+# Known limit: this is also a GitHub schedule, so if GitHub drops *everything* the
+# monitor is dropped with it -- it reduces, not eliminates, the silent-failure window.
+#
+# Checks run a few times a day, each ~1h after a scheduled deploy hour and only during
+# daytime in both EDT and EST, so the intentional overnight deploy gap is never flagged.
+# MAX_AGE_HOURS=4 sits comfortably above the normal ~2h daytime cadence (+ deploy
+# latency), so a single self-healing slip stays quiet while a *stopped* refresh trips it.
+#
+# Reuses the deploy secrets -- no new configuration:
+#   USER1_PAGES_PROJECT / USER2_PAGES_PROJECT  (live URL = https://<project>.pages.dev)
+
+on:
+  schedule:
+    - cron: "0 1,13,17,21 * * *"
+  workflow_dispatch: {}   # allow manual checks
+
+# No repository access needed -- the job only fetches public URLs.
+permissions: {}
+
+concurrency:
+  group: freshness-monitor
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      MAX_AGE_HOURS: "4"
+      USER1_PAGES_PROJECT: ${{ secrets.USER1_PAGES_PROJECT }}
+      USER2_PAGES_PROJECT: ${{ secrets.USER2_PAGES_PROJECT }}
+    steps:
+      - name: Verify each live digest is fresh
+        run: |
+          set -uo pipefail
+          max_age=$(( MAX_AGE_HOURS * 3600 ))
+          now=$(date -u +%s)
+          fail=0
+
+          check_user () {
+            local project="$1"
+            if [ -z "$project" ]; then
+              echo "No Pages project set for this slot -- skipping (user not configured)."
+              return 0
+            fi
+            local url="https://${project}.pages.dev/"
+            echo "Checking ${url} ..."
+
+            local html
+            if ! html=$(curl -fsSL --max-time 30 "$url"); then
+              echo "::error::${project} -- could not fetch live page (network / Cloudflare error)."
+              fail=1
+              return 0
+            fi
+
+            # Pull the generation timestamp out of the masthead: data-iso="2026-..-..T..+00:00".
+            local iso
+            iso=$(printf '%s' "$html" | grep -oE 'data-iso="[^"]+"' | head -n1 | sed -E 's/.*data-iso="([^"]+)".*/\1/')
+            if [ -z "$iso" ]; then
+              echo "::error::${project} -- no generation timestamp (data-iso) on the live page; render may be broken."
+              fail=1
+              return 0
+            fi
+
+            # Drop fractional seconds so GNU date parses the offset cleanly.
+            local iso_clean
+            iso_clean=$(printf '%s' "$iso" | sed -E 's/\.[0-9]+//')
+            local gen
+            if ! gen=$(date -u -d "$iso_clean" +%s 2>/dev/null); then
+              echo "::error::${project} -- could not parse generation timestamp '${iso}'."
+              fail=1
+              return 0
+            fi
+
+            local age hrs
+            age=$(( now - gen ))
+            hrs=$(( age / 3600 ))
+            if [ "$age" -gt "$max_age" ]; then
+              echo "::error::${project} -- digest is ${hrs}h old (limit ${MAX_AGE_HOURS}h). Auto-refresh may have stopped."
+              fail=1
+            else
+              echo "${project} OK -- ${hrs}h old (generated ${iso})."
+            fi
+          }
+
+          check_user "$USER1_PAGES_PROJECT"
+          check_user "$USER2_PAGES_PROJECT"
+
+          if [ "$fail" -ne 0 ]; then
+            echo "One or more digests are stale or unreachable -- failing so GitHub notifies you."
+            exit 1
+          fi
+          echo "All configured digests are fresh."
