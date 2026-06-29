@@ -4,6 +4,9 @@ digest.html
 # Hosted/PWA build output (per-user deploy folders)
 dist/
 
+# Wrangler / Cloudflare local state
+.wrangler/
+
 # Local environment credentials (gitignored for security)
 .env
 
