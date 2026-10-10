@@ -48,6 +48,7 @@ This writes `dist/index.html` (read + triage UI, no settings drawer) plus `manif
    - `USER1_CONFIG_URL`, `USER1_PAGES_PROJECT`, `USER2_CONFIG_URL`, `USER2_PAGES_PROJECT`
 4. The schedule lives in [.github/workflows/refresh.yml](.github/workflows/refresh.yml). Trigger it from the **Actions** tab to test (manual runs bypass the time gate).
 5. On each phone, open the user's Pages URL once and **Add to Home Screen** to install the PWA.
+6. **Keep the cron alive:** GitHub disables scheduled workflows after 60 days with no commits (state `disabled_inactivity`). Run `.\keepalive.ps1 -Install` once; a weekly (Fridays, 9 AM) Task Scheduler job then re-enables any workflow GitHub switched off. Requires `gh` to be authenticated. Run `.\keepalive.ps1` any time to check by hand.
 
 ---
 
@@ -59,6 +60,7 @@ This writes `dist/index.html` (read + triage UI, no settings drawer) plus `manif
 - [template.html](template.html) — Text-centric, paper-styled HTML layout (the settings drawer is stripped from hosted builds).
 - [.github/workflows/refresh.yml](.github/workflows/refresh.yml) — Bi-daily GitHub Actions cron that renders and deploys each user's PWA to Cloudflare Pages.
 - [refresh.bat](refresh.bat) — Double-click to run the local server and open the digest.
+- [keepalive.ps1](keepalive.ps1) — Re-enables workflows GitHub disabled for inactivity; `-Install` registers it as a weekly Windows scheduled task.
 - [schedule.ps1](schedule.ps1) — *(optional)* Windows Task Scheduler registration for a local background refresh.
 - `dist/` — Hosted build output, one folder per user (gitignored).
 - `digest.html` — The compiled local briefing page (gitignored).
